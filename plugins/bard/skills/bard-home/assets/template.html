@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BARD · Bonhams Auction Research Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prata&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* Bonhams palette: black, white, violet accent */
+  --bg: #FFFFFF;
+  --surface: #F6F5F5;
+  --ink: #000000;
+  --muted: #5A5A5A;
+  --rule: #DEDEDE;
+  --rule-strong: #000000;
+  --tray: #F2F2F2;          /* neutral band */
+  --tray-2: #FFFFFF;
+  --tray-line: #D4D4D4;
+  --tray-line-strong: #000000;
+  --tray-ink: #000000;
+  --tray-muted: #5A5A5A;
+  --tray-accent: #8231A8;   /* purple highlight on the band */
+  --yellow: __YELLOW__;
+  --yellow-ink: #000000;
+  --yellow-soft: #FFF6CC;
+  --bonhams: #8231A8;
+  --bonhams-soft: #F1E7F6;
+  --bonhams-on-tray: #8231A8;
+  --c1: #3F3F3F;
+  --c2: #8A8A8A;
+  --c3: #C7C7C7;
+  --below: #5E5E5E;
+  --within: #CFCFCF;
+  --above: #8231A8;
+  --down-on-tray: #A8362B;
+  --warn-bg: #F6F5F5;
+  --warn-ink: #3A3A3A;
+  --focus: #8231A8;
+  --display: "SangBleu Republic", "SangBleu Kingdom", "SangBleu Empire", "Prata", "Didot", "Bodoni 72", Georgia, serif;
+  --text: "SangBleu Sunrise", "Hanken Grotesk", "Helvetica Neue", Arial, system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F2F2F2; --muted: #A6A6A6; --rule: #2E2E2E; --rule-strong: #F2F2F2;
+    --tray: #1A1A1A; --tray-2: #242424; --tray-line: #3A3A3A; --tray-line-strong: #E6E6E6; --tray-ink: #FFFFFF; --tray-muted: #B3B3B3; --tray-accent: #C9A2E3;
+    --bonhams: #B57BD6; --bonhams-soft: #2B1D33; --bonhams-on-tray: #C9A2E3; --down-on-tray: #F0B3AA; --yellow-soft: #332B0A;
+    --c1: #D0D0D0; --c2: #8C8C8C; --c3: #555555;
+    --below: #8C8C8C; --within: #3D3D3D; --above: #B57BD6;
+    --warn-bg: #1A1A1A; --warn-ink: #D9D9D9; --focus: #C9A2E3;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F0F0F; --surface: #1A1A1A; --ink: #F2F2F2; --muted: #A6A6A6; --rule: #2E2E2E; --rule-strong: #F2F2F2;
+  --tray: #1A1A1A; --tray-2: #242424; --tray-line: #3A3A3A; --tray-line-strong: #E6E6E6; --tray-ink: #FFFFFF; --tray-muted: #B3B3B3; --tray-accent: #C9A2E3;
+  --bonhams: #B57BD6; --bonhams-soft: #2B1D33; --bonhams-on-tray: #C9A2E3; --down-on-tray: #F0B3AA; --yellow-soft: #332B0A;
+  --c1: #D0D0D0; --c2: #8C8C8C; --c3: #555555;
+  --below: #8C8C8C; --within: #3D3D3D; --above: #B57BD6;
+  --warn-bg: #1A1A1A; --warn-ink: #D9D9D9; --focus: #C9A2E3;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--text); font-size: 15px; line-height: 1.5;
+  font-variant-numeric: tabular-nums lining-nums;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 3px; }
+a:hover { color: var(--bonhams); text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
+@media (max-width: 640px) { .wrap { padding: 0 18px; } }
+
+/* ---------- masthead + tray (black band) ---------- */
+.tray { background: var(--tray); color: var(--tray-ink); }
+.masthead { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 22px 0 18px; border-bottom: 1px solid var(--tray-line); }
+.brand { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; min-width: 0; }
+.brand h1 { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1; margin: 0; letter-spacing: 0.08em; }
+.brand p { margin: 0; color: var(--tray-muted); font-size: 14px; }
+.controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--tray-line-strong); border-radius: 0; padding: 0; }
+.seg button { border: 0; background: transparent; color: var(--tray-muted); padding: 7px 14px; border-radius: 0; cursor: pointer; font-size: 13.5px; }
+.seg button + button { border-left: 1px solid var(--tray-line-strong); }
+.seg button[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); font-weight: 600; }
+.tray :focus-visible { outline-color: var(--tray-accent); }
+.seg.small button { padding: 5px 11px; font-size: 13px; }
+.status { display: flex; align-items: center; gap: 10px; padding: 10px 0 0; font-size: 13px; color: var(--tray-muted); min-height: 34px; flex-wrap: wrap; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--tray-muted); flex: none; }
+.dot.live { background: var(--bonhams-on-tray); }
+.dot.busy { background: var(--tray-accent); animation: pulse 1.2s ease-in-out infinite; }
+.dot.warn { background: var(--down-on-tray); }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .dot.busy { animation: none; } }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--tray-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 13px; }
+.linkbtn[disabled] { opacity: .5; cursor: default; }
+
+.traybody { padding: 22px 0 32px; }
+.tray h2 { font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.2; margin: 0 0 6px; }
+.tray .lede { color: var(--tray-muted); margin: 0 0 20px; max-width: 66ch; font-size: 14.5px; }
+
+/* comps builder */
+.builder { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; }
+@media (max-width: 860px) { .builder { grid-template-columns: minmax(0, 1fr); } }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px 16px; }
+.fields .full { grid-column: 1 / -1; }
+@media (max-width: 480px) { .fields { grid-template-columns: minmax(0, 1fr); } }
+.field label { display: block; font-size: 13px; color: var(--tray-muted); margin-bottom: 5px; }
+.field input, .field select, .field textarea {
+  width: 100%; background: var(--tray-2); border: 1px solid var(--tray-line);
+  border-radius: 0; padding: 9px 11px; color: var(--tray-ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--tray-accent); outline: none; box-shadow: 0 0 0 1px var(--tray-accent); }
+.field textarea { resize: vertical; min-height: 64px; }
+.field input::placeholder, .field textarea::placeholder { color: #8A8A8A; }
+.request { background: var(--tray-2); border: 1px solid var(--tray-line); border-top: 4px solid var(--tray-accent); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.request .label { font-size: 13px; color: var(--tray-muted); }
+.request pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--text); font-size: 14.5px; line-height: 1.55; color: var(--tray-ink); max-height: 260px; overflow: auto; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--yellow); border-radius: 0; padding: 9px 20px; cursor: pointer; font-weight: 600; background: var(--yellow); color: var(--yellow-ink); letter-spacing: 0.02em; }
+.btn:hover { background: #000000; border-color: #000000; color: var(--yellow); }
+.request .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.request .hint { font-size: 13px; color: var(--tray-muted); }
+
+/* headline figures — sized to their container so values never collide */
+.figures { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 0; }
+.fig { min-width: 0; padding: 0 22px; border-left: 1px solid var(--tray-line); }
+.fig:first-child { padding-left: 0; border-left: 0; }
+.fig .k { font-size: 13px; color: var(--tray-muted); margin-bottom: 6px; }
+.fig .v { font-family: var(--display); font-weight: 400; font-size: clamp(22px, 3.1cqi, 34px); line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fig.hero .v { font-size: clamp(30px, 4.6cqi, 50px); color: var(--tray-accent); }
+.fig .s { font-size: 13px; color: var(--tray-muted); margin-top: 6px; }
+.fig .s b { color: var(--tray-ink); font-weight: 600; }
+@media (max-width: 900px) {
+  .figures { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); row-gap: 22px; }
+  .fig { padding: 0 16px; }
+  .fig:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .fig.hero { grid-column: 1 / -1; padding: 0 0 18px; border-bottom: 1px solid var(--tray-line); }
+  .fig:nth-child(2) { padding-left: 0; border-left: 0; }
+  .fig:nth-child(3) { padding-left: 16px; border-left: 1px solid var(--tray-line); }
+  .fig:nth-child(4) { grid-column: 1 / -1; padding-left: 0; border-left: 0; }
+  .fig .v { font-size: clamp(22px, 6.4cqi, 32px); }
+  .fig.hero .v { font-size: clamp(30px, 9cqi, 46px); }
+}
+.up, .fig .s b.up { color: var(--bonhams-on-tray); }
+.down, .fig .s b.down { color: var(--down-on-tray); }
+.trayhead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+
+/* ---------- white sections ---------- */
+main { padding: 4px 0 40px; }
+section.block { padding: 34px 0 6px; }
+section.block + section.block { border-top: 1px solid var(--rule); }
+.blockhead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.blockhead > div { min-width: 0; }
+.blockhead h3 { font-family: var(--display); font-weight: 400; font-size: 24px; line-height: 1.25; margin: 0; }
+.blockhead p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; font-size: 14px; }
+.seg.plain { border-color: var(--rule-strong); }
+.seg.plain button { color: var(--muted); }
+.seg.plain button + button { border-left-color: var(--rule-strong); }
+.seg.plain button[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* lots list */
+.chips { display: flex; gap: 0; flex-wrap: wrap; border: 1px solid var(--rule-strong); }
+.chip { border: 0; background: transparent; padding: 6px 13px; font-size: 13px; cursor: pointer; color: var(--muted); }
+.chip + .chip { border-left: 1px solid var(--rule-strong); }
+.chip[aria-pressed="true"] { background: var(--yellow); color: var(--yellow-ink); font-weight: 600; }
+.lots { list-style: none; margin: 0; padding: 0; }
+.lot { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 24px; padding: 16px 0; border-bottom: 1px solid var(--rule); }
+.lot:first-child { border-top: 1px solid var(--rule-strong); }
+.lot.is-b { box-shadow: inset 4px 0 0 var(--yellow); padding-left: 16px; }
+.lot .title { font-family: var(--display); font-size: 17px; line-height: 1.35; overflow-wrap: anywhere; }
+.lot .meta { font-size: 13px; color: var(--muted); margin-top: 3px; overflow-wrap: anywhere; }
+.lot .house-b { color: var(--bonhams); font-weight: 600; }
+.lot .price { text-align: right; font-size: 14px; white-space: nowrap; }
+.lot .price .big { font-size: 16px; font-weight: 600; }
+.lot .price .sub { color: var(--muted); font-size: 13px; }
+@media (max-width: 620px) { .lot { grid-template-columns: minmax(0, 1fr); } .lot .price { text-align: left; white-space: normal; } }
+.band { display: inline-block; font-size: 12px; padding: 1px 8px; margin-left: 6px; vertical-align: 1px; border: 1px solid currentColor; }
+.band.Above { color: var(--bonhams); }
+.band.Within { color: var(--muted); }
+.band.Below { color: var(--ink); }
+
+/* estimate bars */
+.est { display: grid; grid-template-columns: 108px minmax(0, 1fr) 58px; gap: 10px 14px; align-items: center; font-size: 14px; }
+.est .t { color: var(--ink); min-width: 0; }
+.est .n { font-size: 12px; color: var(--muted); display: block; }
+.stack { display: flex; height: 22px; overflow: hidden; background: var(--rule); }
+.stack span { display: flex; align-items: center; justify-content: center; font-size: 11.5px; color: #fff; min-width: 0; overflow: hidden; white-space: nowrap; }
+.stack .b { background: var(--below); } .stack .w { background: var(--within); color: #111; } .stack .a { background: var(--above); }
+.est .m { text-align: right; color: var(--muted); font-size: 13px; }
+@media (max-width: 480px) { .est { grid-template-columns: 84px minmax(0, 1fr) 46px; gap: 10px 10px; } }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 14px; }
+.legend i { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; }
+.callout { margin-top: 18px; padding: 12px 14px; border-left: 4px solid var(--yellow); background: var(--yellow-soft); font-size: 14px; }
+
+/* rules */
+.rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
+@media (max-width: 860px) { .rules { grid-template-columns: minmax(0, 1fr); } }
+.rules h4 { font-family: var(--display); font-weight: 400; font-size: 18px; margin: 0 0 6px; }
+.rules p { margin: 0; color: var(--muted); font-size: 14px; max-width: 46ch; }
+
+/* share bars */
+.share { display: grid; grid-template-columns: 44px minmax(0, 1fr) 52px; gap: 12px 12px; align-items: center; }
+.share .fy { font-size: 14px; color: var(--muted); }
+.share .bshare { font-size: 14px; font-weight: 600; color: var(--bonhams); text-align: right; }
+.sbar { display: flex; height: 32px; overflow: hidden; min-width: 0; }
+.sbar span { display: flex; align-items: center; padding: 0 8px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: clip; min-width: 0; }
+.sbar span .nm { display: inline; padding: 0; }
+@media (max-width: 600px) { .sbar span .nm { display: none; } }
+.h-Bonhams { background: var(--bonhams); color: #fff; }
+.h-Christies { background: var(--c1); color: #fff; }
+.h-Sothebys { background: var(--c2); color: #111; }
+.h-Phillips { background: var(--c3); color: #111; }
+:root[data-theme="dark"] .h-Christies { color: #111; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .h-Christies { color: #111; } :root:not([data-theme="light"]) .h-Phillips { color: #fff; } }
+.basis { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+/* tables */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: right; padding: 9px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+thead th { border-bottom: 1px solid var(--rule-strong); }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+thead th { font-weight: 500; color: var(--muted); font-size: 13px; }
+td .sh { display: block; font-size: 12px; color: var(--muted); }
+td.bonhams, th.bonhams { color: var(--bonhams); font-weight: 600; }
+td.wrapcell { white-space: normal; min-width: 220px; text-align: left; }
+
+/* trend small multiples */
+.multiples { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 26px 36px; }
+@media (max-width: 760px) { .multiples { grid-template-columns: minmax(0, 1fr); } }
+.mult h4 { margin: 0 0 2px; font-size: 14px; font-weight: 600; }
+.mult .peak { font-size: 12px; color: var(--muted); margin: 0 0 6px; }
+.mult svg { width: 100%; height: 86px; display: block; }
+.mult .axis { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+/* notes */
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.notes li { font-size: 14px; color: var(--muted); display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
+.notes li b { color: var(--ink); font-weight: 600; }
+footer { border-top: 1px solid var(--rule-strong); padding: 18px 0 34px; font-size: 13px; color: var(--muted); }
+footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="tray">
+  <div class="wrap">
+    <header class="masthead">
+      <div class="brand">
+        <h1>BARD</h1>
+        <p>Bonhams Auction Research Database</p>
+      </div>
+      <div class="controls">
+        <div class="seg" role="group" aria-label="View">
+          <button type="button" data-role="specialist">Specialist</button>
+          <button type="button" data-role="management">Management</button>
+        </div>
+        <div class="seg small" role="group" aria-label="Currency">
+          <button type="button" data-ccy="USD">USD</button>
+          <button type="button" data-ccy="AUD">AUD</button>
+        </div>
+      </div>
+    </header>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+    <div class="traybody" id="tray"></div>
+  </div>
+</div>
+<main class="wrap" id="main"></main>
+<footer><div class="wrap"><span id="basis"></span><span>Powered by Investair</span></div></footer>
+
+<script>
+const SNAPSHOT = __SNAPSHOT__;
+const MODEL_SQL = __MODEL_SQL__;
+const PROJECT_ID = __PROJECT_ID__;
+const SERVER = __SERVER__;
+const TOOL = "execute_sql";
+
+const HOUSES = ["Bonhams", "Christies", "Sothebys", "Phillips"];
+const HOUSE_NAME = { Bonhams: "Bonhams", Christies: "Christie's", Sothebys: "Sotheby's", Phillips: "Phillips" };
+const REGIONS = ["UK", "US", "Asia", "Switzerland", "Europe", "Australia"];
+const CCY_SYM = { USD: "US$", AUD: "A$", GBP: "£", EUR: "€", CHF: "CHF ", HKD: "HK$", CNY: "CN¥" };
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("bard:" + k); return v == null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("bard:" + k, v); } catch (e) {} }
+};
+
+const state = {
+  model: SNAPSHOT,
+  source: "snapshot",       // snapshot | live
+  liveAt: null,
+  status: { kind: "idle", text: "" },
+  role: store.get("role", "specialist"),
+  ccy: store.get("ccy", "USD"),
+  fy: null,
+  estFy: null,
+  house: "all",
+  form: { type: "Ring", maker: "", stone: "Diamond", carat: "", period: "", condition: "", show: "AUD" }
+};
+
+/* ---------- helpers ---------- */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    el.appendChild(typeof kid === "string" || typeof kid === "number" ? document.createTextNode(String(kid)) : kid);
+  }
+  return el;
+}
+function s(tag, attrs) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  return el;
+}
+const fyLabel = fy => "FY" + String(fy % 100).padStart(2, "0");
+const fyRange = fy => `Jul ${fy - 1} – Jun ${fy}`;
+function rate(ccy) { const r = (state.model.fx || []).find(x => x[0] === ccy); return r ? Number(r[1]) : null; }
+function toDisplay(usd) { if (state.ccy === "USD") return usd; const r = rate(state.ccy); return r ? usd / r : usd; }
+function money(usd, opts = {}) {
+  if (usd == null || isNaN(usd)) return "—";
+  const v = toDisplay(Number(usd));
+  const sym = CCY_SYM[state.ccy];
+  const a = Math.abs(v);
+  if (opts.full) return sym + Math.round(v).toLocaleString("en-AU");
+  if (a >= 1e9) return sym + (v / 1e9).toFixed(2) + "bn";
+  if (a >= 1e6) return sym + (v / 1e6).toFixed(a >= 1e8 ? 0 : 1) + "m";
+  if (a >= 1e3) return sym + Math.round(v / 1e3).toLocaleString("en-AU") + "k";
+  return sym + Math.round(v).toLocaleString("en-AU");
+}
+function orig(amount, ccy) {
+  if (amount == null) return "—";
+  return (CCY_SYM[ccy] || (ccy + " ")) + Number(amount).toLocaleString("en-AU", { maximumFractionDigits: 0 });
+}
+const pct = (x, d = 1) => (x == null || isNaN(x)) ? "—" : (x * 100).toFixed(d) + "%";
+const fmtDate = d => { if (!d) return "—"; const t = new Date(d + (String(d).length === 10 ? "T00:00:00" : "")); return t.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" }); };
+function niceTitle(t) {
+  if (!t) return "";
+  t = String(t).trim();
+  const letters = t.replace(/[^A-Za-z]/g, "");
+  if (letters && letters === letters.toUpperCase() && letters.length > 6) {
+    t = t.toLowerCase().replace(/(^|[:.|]\s*|\s'|\()([a-zà-ÿ])/g, (m, a, b) => a + b.toUpperCase());
+  }
+  return t;
+}
+function safeUrl(u) { return /^https:\/\//.test(u || "") ? u : null; }
+const sum = (arr, f) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
+
+/* ---------- model accessors ---------- */
+const M = () => state.model;
+function fyRows(house, fy, fmt) { return (M().fy || []).filter(r => r[0] === house && r[1] === fy && (!fmt || r[2] === fmt)); }
+function liveUsd(house, fy) { return sum(fyRows(house, fy, "live"), r => r[7]); }
+function completeFys() { const c = M().cur_fy; return [c - 3, c - 2, c - 1]; }
+function meta(house) { const r = (M().meta || []).find(x => x[0] === house); return r ? { latest: r[1], reliable: r[2], caveat: r[3], liveSales: r[4] } : null; }
+
+/* ---------- status ---------- */
+function setStatus(kind, text, action) { state.status = { kind, text, action }; renderStatus(); }
+function renderStatus() {
+  const el = document.getElementById("status");
+  el.replaceChildren();
+  const { kind, text, action } = state.status;
+  const dotClass = { live: "live", busy: "busy", warn: "warn" }[kind] || "";
+  el.append(h("span", { class: "dot " + dotClass, "aria-hidden": "true" }), h("span", { text }));
+  if (action) el.append(h("button", { class: "linkbtn", type: "button", onclick: action.fn, disabled: action.disabled || null, text: action.label }));
+}
+
+/* ---------- live data ---------- */
+let mcp = null, loading = false;
+function extractModel(result) {
+  let p = result && typeof result === "object" && "payload" in result ? result.payload : result;
+  let text = null;
+  if (typeof p === "string") text = p;
+  else if (p && typeof p.result === "string") text = p.result;
+  else if (p && typeof p === "object" && p.model) return p.model;
+  else if (Array.isArray(p) && p[0] && p[0].model) return p[0].model;
+  if (text == null && result && Array.isArray(result.content)) text = result.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+  if (text == null) throw Object.assign(new Error("No text in result"), { code: "parse" });
+  const m = text.match(/<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/);
+  const body = JSON.parse(m ? m[1] : text);
+  const model = Array.isArray(body) ? body[0] && body[0].model : (body.model || body);
+  if (!model || model.v !== 1 || !Array.isArray(model.meta)) throw Object.assign(new Error("Unexpected shape"), { code: "parse" });
+  return model;
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function looksAsleep(e) { return /paus|inactive|restor|resum|not ready|coming up|503|timeout/i.test((e && e.message) || ""); }
+
+async function loadLive(force) {
+  if (!mcp || loading) return;
+  loading = true;
+  setStatus("busy", state.source === "live" ? "Refreshing live data…" : "Loading live data from BARD…");
+  const call = () => mcp.callTool(SERVER, TOOL, { project_id: PROJECT_ID, query: MODEL_SQL },
+    { cache: force ? { staleTime: 300000, gcTime: 86400000, refresh: true } : { staleTime: 300000, gcTime: 86400000 } });
+  let attempt = 0;
+  while (true) {
+    try {
+      const res = await call();
+      const model = extractModel(res);
+      state.model = model; state.source = "live";
+      state.liveAt = res && res.cache && res.cache.storedAt ? new Date(res.cache.storedAt) : new Date();
+      loading = false;
+      setStatus("live", `Live data · updated ${state.liveAt.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}`, { label: "Refresh", fn: () => loadLive(true) });
+      render();
+      return;
+    } catch (e) {
+      const code = e && e.code;
+      const retryable = e && (e.retryable || code === "tool_error" || code === "server_unavailable") && code !== "parse";
+      if (attempt === 0 && retryable) {
+        attempt++;
+        setStatus("busy", code === "tool_error" || looksAsleep(e) ? "Waking the database — this can take up to a minute the first time each day…" : "BARD didn't answer. Trying once more…");
+        await sleep((e.retryAfterMs || 7000) + Math.random() * 3000);
+        continue;
+      }
+      loading = false;
+      handleLiveError(e);
+      return;
+    }
+  }
+}
+function handleLiveError(e) {
+  const code = (e && e.code) || "upstream_error";
+  const snap = `Showing the saved snapshot from ${fmtDate(SNAPSHOT.generated_at.slice(0, 10))}.`;
+  const retry = { label: "Try again", fn: () => loadLive(true) };
+  const msgs = {
+    server_not_connected: [`Add the Supabase connector in claude.ai Settings → Connectors to see live data. ${snap}`, null],
+    needs_reauth: [`Reconnect Supabase in claude.ai Settings → Connectors to see live data. ${snap}`, retry],
+    selection_required: [`Choose which Supabase connection to use when claude.ai asks, then try again. ${snap}`, retry],
+    not_in_manifest: [`Live data is turned off for this page. ${snap}`, null],
+    not_granted: [`Live data isn't available in this view. ${snap}`, null],
+    capability_disabled: [`Live data isn't available in this view. ${snap}`, null],
+    capability_removed: [`Live data isn't available in this view. ${snap}`, null],
+    blocked_by_policy: [`Your organisation's settings block this database query. ${snap}`, null],
+    approval_required: [`Your organisation requires approval for this query. ${snap}`, null],
+    parse: [`Live data came back in an unexpected format. ${snap}`, retry],
+    tool_error: [`BARD reported an error: ${(e && e.message || "").slice(0, 140)} ${snap}`, retry],
+    server_unavailable: [`BARD didn't respond. ${snap}`, retry]
+  };
+  const [text, action] = msgs[code] || [`Couldn't load live data (${code}). ${snap}`, retry];
+  if (["needs_reauth", "server_not_connected", "blocked_by_policy", "not_in_manifest"].includes(code)) { state.model = SNAPSHOT; state.source = "snapshot"; render(); }
+  setStatus("warn", text, action);
+}
+
+/* ---------- comps request ---------- */
+function requestText() {
+  const f = state.form;
+  const parts = [];
+  const desc = [f.type.toLowerCase()];
+  if (f.stone && f.stone !== "Other / none") desc.unshift(f.carat ? `${f.carat} ct ${f.stone.toLowerCase()}` : f.stone.toLowerCase());
+  let line = `Using BARD, find comparable sold lots for a ${desc.join(" ")}`;
+  if (f.maker.trim()) line += ` by ${f.maker.trim()}`;
+  if (f.period.trim()) line += `, ${f.period.trim()}`;
+  parts.push(line + ".");
+  if (f.condition.trim()) parts.push(`Condition and details: ${f.condition.trim()}`);
+  parts.push(`Search all four houses, sold lots only. For each comparable show hammer and buyer's total with a conversion to ${f.show}, flag whether the piece is made by or cased by the maker, and note any lots where the carat weight or quality differs materially.`);
+  parts.push(`Then suggest an estimate range, explaining which comparables it rests on.`);
+  return parts.join("\n\n");
+}
+
+/* ---------- renderers ---------- */
+function renderTray() {
+  const tray = document.getElementById("tray");
+  tray.replaceChildren(state.role === "specialist" ? trayBuilder() : trayFigures());
+}
+
+function trayBuilder() {
+  const f = state.form;
+  const pre = h("pre", { id: "reqtext" }, requestText());
+  const update = () => { pre.textContent = requestText(); };
+  const field = (key, label, el, cls) => {
+    el.id = "f-" + key;
+    el.addEventListener("input", () => { f[key] = el.value; update(); });
+    return h("div", { class: "field " + (cls || "") }, h("label", { for: el.id, text: label }), el);
+  };
+  const sel = (key, opts) => { const el = h("select", null, opts.map(o => h("option", { value: o, selected: o === f[key] || null, text: o }))); return el; };
+  const inp = (key, ph, type) => h("input", { type: type || "text", value: f[key], placeholder: ph, inputmode: type === "number" ? "decimal" : null, step: type === "number" ? "0.01" : null, min: type === "number" ? "0" : null });
+  const ta = h("textarea", { placeholder: "e.g. Signed Cartier, platinum mount, GIA report, D colour VVS1" }); ta.value = f.condition;
+  const copyMsg = h("span", { class: "hint", "aria-live": "polite" });
+  const copy = async () => {
+    const text = requestText();
+    try { await navigator.clipboard.writeText(text); copyMsg.textContent = "Copied. Paste it into Claude."; }
+    catch (e) {
+      const r = document.createRange(); r.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      copyMsg.textContent = "Selected. Press Ctrl+C (⌘C on Mac) to copy.";
+    }
+  };
+  return h("div", null,
+    h("h2", { text: "Price a piece" }),
+    h("p", { class: "lede", text: "Describe the lot and BARD writes the comparables request. Paste it into Claude with the Bonhams plugin to get sold comparables from all four houses and a suggested estimate." }),
+    h("div", { class: "builder" },
+      h("div", { class: "fields" },
+        field("type", "Type", sel("type", ["Ring", "Necklace", "Earrings", "Bracelet", "Brooch", "Pendant", "Tiara", "Cufflinks", "Loose stone", "Watch"])),
+        field("stone", "Main stone", sel("stone", ["Diamond", "Coloured diamond", "Sapphire", "Ruby", "Emerald", "Pearl", "Jadeite", "Spinel", "Other / none"])),
+        field("maker", "Maker or house", inp("maker", "e.g. Van Cleef & Arpels")),
+        field("carat", "Carat weight", inp("carat", "e.g. 3.02", "number")),
+        field("period", "Period or date", inp("period", "e.g. circa 1930")),
+        field("show", "Convert prices to", sel("show", ["AUD", "USD", "GBP", "HKD", "CHF", "EUR"])),
+        field("condition", "Condition and details", ta, "full")
+      ),
+      h("div", { class: "request" },
+        h("span", { class: "label", text: "Your request" }),
+        pre,
+        h("div", { class: "row" }, h("button", { class: "btn", type: "button", onclick: copy, text: "Copy request" }), copyMsg)
+      )
+    )
+  );
+}
+
+function trayFigures() {
+  const fy = state.fy;
+  const bLive = liveUsd("Bonhams", fy);
+  const allLive = sum(HOUSES, x => liveUsd(x, fy));
+  const prevLive = liveUsd("Bonhams", fy - 1);
+  const bAll = fyRows("Bonhams", fy);
+  const offered = sum(bAll, r => r[4]), sold = sum(bAll, r => r[5]);
+  const liveSold = sum(fyRows("Bonhams", fy, "live"), r => r[5]);
+  const liveSales = sum(fyRows("Bonhams", fy, "live"), r => r[3]);
+  const rank = [...HOUSES].sort((a, b) => liveUsd(b, fy) - liveUsd(a, fy)).indexOf("Bonhams") + 1;
+  const yoy = prevLive ? bLive / prevLive - 1 : null;
+
+  const ytd = (M().ytd || []).filter(r => r[0] === "Bonhams");
+  const curY = sum(ytd, r => r[2]), prevY = sum(ytd, r => r[3]);
+  const ytdChg = prevY ? curY / prevY - 1 : null;
+  const cfy = M().cur_fy;
+
+  const fySeg = h("div", { class: "seg small", role: "group", "aria-label": "Financial year" },
+    completeFys().map(y => h("button", { type: "button", "aria-pressed": String(y === fy), onclick: () => { state.fy = y; render(); }, text: fyLabel(y) })));
+
+  const chg = (x, suffix) => x == null ? h("span", { text: "no prior-year figure" }) :
+    h("span", null, h("b", { class: x >= 0 ? "up" : "down", text: (x >= 0 ? "+" : "") + pct(x) }), suffix);
+
+  return h("div", null,
+    h("div", { class: "trayhead" },
+      h("div", null,
+        h("h2", { text: `Bonhams jewellery, ${fyLabel(fy)}` }),
+        h("p", { class: "lede", style: "margin:0", text: `${fyRange(fy)}. Market share compares live auctions only.` })),
+      fySeg),
+    h("div", { class: "figures" },
+      h("div", { class: "fig hero" },
+        h("div", { class: "k", text: "Sold at live auctions (buyer's total)" }),
+        h("div", { class: "v", text: money(bLive) }),
+        h("div", { class: "s" }, chg(yoy, ` on ${fyLabel(fy - 1)} · ${liveSales} sales, ${liveSold.toLocaleString("en-AU")} lots`))),
+      h("div", { class: "fig" },
+        h("div", { class: "k", text: "Share of live value" }),
+        h("div", { class: "v", text: allLive ? pct(bLive / allLive) : "—" }),
+        h("div", { class: "s", text: `Ranked ${rank} of 4 houses` })),
+      h("div", { class: "fig" },
+        h("div", { class: "k", text: "Sell-through, all sales" }),
+        h("div", { class: "v", text: offered ? pct(sold / offered, 0) : "—" }),
+        h("div", { class: "s", text: `${sold.toLocaleString("en-AU")} of ${offered.toLocaleString("en-AU")} lots` })),
+      h("div", { class: "fig" },
+        h("div", { class: "k", text: `${fyLabel(cfy)} to date` }),
+        h("div", { class: "v", text: money(curY) }),
+        h("div", { class: "s" }, chg(ytdChg, ` vs same point of ${fyLabel(cfy - 1)}, live and online`)))
+    )
+  );
+}
+
+function renderMain() {
+  const main = document.getElementById("main");
+  main.replaceChildren(...(state.role === "specialist" ? specialistBlocks() : managementBlocks()));
+}
+
+/* specialist */
+function specialistBlocks() {
+  return [blockRecent(), blockEstimates(), blockRules(), blockNotes()];
+}
+
+function blockRecent() {
+  const all = (M().recent || []).map(r => ({ h: r[0], sale: r[1], d: r[2], f: r[3], r: r[4], t: r[5], title: r[6], c: r[7], el: r[8], eh: r[9], hp: r[10], sp: r[11], u: r[12], band: r[13], url: r[14] }));
+  const rows = state.house === "all"
+    ? HOUSES.flatMap(hh => all.filter(x => x.h === hh).sort((a, b) => b.u - a.u).slice(0, 3))
+    : all.filter(x => x.h === state.house).sort((a, b) => b.u - a.u);
+  const chips = h("div", { class: "chips", role: "group", "aria-label": "Filter by house" },
+    [["all", "All houses"], ...HOUSES.map(x => [x, HOUSE_NAME[x]])].map(([k, label]) =>
+      h("button", { class: "chip", type: "button", "aria-pressed": String(state.house === k), onclick: () => { state.house = k; renderMain(); }, text: label })));
+  const list = h("ul", { class: "lots" }, rows.map(x => {
+    const url = safeUrl(x.url);
+    const title = h("div", { class: "title" }, url ? h("a", { href: url, target: "_blank", rel: "noopener", text: niceTitle(x.title) }) : niceTitle(x.title));
+    const metaLine = h("div", { class: "meta" },
+      h("span", { class: x.h === "Bonhams" ? "house-b" : "", text: HOUSE_NAME[x.h] }),
+      ` · ${x.sale} · ${fmtDate(x.d)}${x.f === "online" ? " · online" : ""}`);
+    const est = h("div", { class: "meta", text: `Estimate ${orig(x.el, x.c)}–${orig(x.eh, x.c).replace(/^[^\d]+/, "")} · ${x.t}` });
+    const price = h("div", { class: "price" },
+      h("div", { class: "big", text: orig(x.sp, x.c) }),
+      h("div", { class: "sub" }, `Buyer's total · ${money(x.u)}`),
+      h("div", { class: "sub" }, x.hp != null ? `Hammer ${orig(x.hp, x.c)}` : "Hammer not published", x.band ? h("span", { class: "band " + x.band, text: x.band === "Within" ? "Within estimate" : x.band + " estimate" }) : null));
+    return h("li", { class: x.h === "Bonhams" ? "lot is-b" : "lot" }, h("div", null, title, metaLine, est), price);
+  }));
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" },
+      h("div", null, h("h3", { text: "Top lots, last six months" }), h("p", { text: state.house === "all" ? "The three highest buyer's totals at each house. Filter to a house to see more. Links open the lot page." : `The highest buyer's totals at ${HOUSE_NAME[state.house]}. Links open the lot page.` })),
+      chips),
+    rows.length ? list : h("p", { class: "basis", text: "No sold lots captured for this house in the last six months." }));
+}
+
+function blockEstimates() {
+  const fys = [...new Set((M().est || []).map(r => r[0]))].sort();
+  if (state.estFy == null || !fys.includes(state.estFy)) state.estFy = fys.includes(M().cur_fy - 1) ? M().cur_fy - 1 : fys[fys.length - 1];
+  const rows = (M().est || []).filter(r => r[0] === state.estFy).map(r => ({ t: r[1], n: r[2], b: r[3], w: r[4], a: r[5], med: r[6] }));
+  const seg = h("div", { class: "seg small plain", role: "group", "aria-label": "Financial year" },
+    fys.map(y => h("button", { type: "button", "aria-pressed": String(y === state.estFy), onclick: () => { state.estFy = y; renderMain(); }, text: y === M().cur_fy ? `${fyLabel(y)} to date` : fyLabel(y) })));
+  const grid = h("div", { class: "est" }, rows.flatMap(r => {
+    const bw = r.b / r.n, ww = r.w / r.n, aw = r.a / r.n;
+    const seg = (cls, w, label) => h("span", { class: cls, style: `width:${(w * 100).toFixed(2)}%`, title: `${label}: ${pct(w, 0)}` }, w >= 0.12 ? pct(w, 0) : "");
+    return [
+      h("div", { class: "t" }, r.t, h("span", { class: "n", text: `${r.n.toLocaleString("en-AU")} lots` })),
+      h("div", { class: "stack", role: "img", "aria-label": `${r.t}: ${pct(bw, 0)} below, ${pct(ww, 0)} within, ${pct(aw, 0)} above estimate` },
+        seg("b", bw, "Below"), seg("w", ww, "Within"), seg("a", aw, "Above")),
+      h("div", { class: "m", title: "Median hammer as a multiple of the low estimate", text: r.med != null ? "×" + Number(r.med).toFixed(2) : "—" })
+    ];
+  }));
+  const worst = [...rows].filter(r => r.n >= 40).sort((a, b) => b.b / b.n - a.b / a.n)[0];
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" },
+      h("div", null, h("h3", { text: "How Bonhams estimates are landing" }),
+        h("p", { text: "Share of sold lots hammering below, within or above estimate, by type. The right-hand figure is the median hammer as a multiple of the low estimate." })),
+      seg),
+    grid,
+    h("div", { class: "legend" },
+      h("span", null, h("i", { style: "background:var(--below)" }), "Below low estimate"),
+      h("span", null, h("i", { style: "background:var(--within)" }), "Within estimate"),
+      h("span", null, h("i", { style: "background:var(--above)" }), "Above high estimate")),
+    worst && worst.b / worst.n > 0.35 ? h("div", { class: "callout", text: `${worst.t}: ${pct(worst.b / worst.n, 0)} of sold lots hammered below the low estimate in ${fyLabel(state.estFy)}, the highest of any type.` }) : null);
+}
+
+function blockRules() {
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Reading the numbers" }))),
+    h("div", { class: "rules" },
+      h("div", null, h("h4", { text: "Hammer and buyer's total" }), h("p", { text: "Estimates are set against the hammer. Buyer's total adds the premium and is the figure used to compare houses. Christie's, Sotheby's and Phillips publish buyer's total only." })),
+      h("div", null, h("h4", { text: "Made by, or cased by" }), h("p", { text: "A maker's mark means the house made the piece. A maker's case means it was retailed there and may come from another workshop, which usually lowers the price. Check before relying on a comparable." })),
+      h("div", null, h("h4", { text: "Currency" }), h("p", { text: "Lot prices are shown in the sale currency. Converted figures use the latest European Central Bank rates for every period, so year-on-year changes exclude currency movements." }))));
+}
+
+function blockNotes() {
+  const items = HOUSES.map(x => {
+    const m = meta(x) || {};
+    return h("li", null, h("b", { text: HOUSE_NAME[x] }), h("span", { text: `Latest sale captured ${fmtDate(m.latest)}. ${m.caveat || "No caveats."}` }));
+  });
+  const fx = (M().fx || [])[0];
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Data notes" }),
+      h("p", { text: `Dedicated jewellery sales only. Exchange rates as at ${fx ? fmtDate(fx[2]) : "—"}. Data ${state.source === "live" ? "loaded live" : "from the saved snapshot"}, generated ${fmtDate(String(M().generated_at).slice(0, 10))}.` }))),
+    h("ul", { class: "notes" }, items));
+}
+
+/* management */
+function managementBlocks() {
+  return [blockShare(), blockRegions(), blockTrend(), blockConcentration(), blockOnline(), blockNotes()];
+}
+
+function blockShare() {
+  const rows = completeFys().map(y => {
+    const tot = sum(HOUSES, x => liveUsd(x, y));
+    return h("div", { style: "display:contents" },
+      h("div", { class: "fy", text: fyLabel(y) }),
+      h("div", { class: "sbar", role: "img", "aria-label": `${fyLabel(y)} live value share: ` + HOUSES.map(x => `${HOUSE_NAME[x]} ${pct(liveUsd(x, y) / tot)}`).join(", ") },
+        HOUSES.map(x => { const w = tot ? liveUsd(x, y) / tot : 0; return h("span", { class: "h-" + x, style: `width:${(w * 100).toFixed(2)}%`, title: `${HOUSE_NAME[x]}: ${money(liveUsd(x, y))} (${pct(w)})` }, w > 0.16 ? [h("span", { class: "nm", text: HOUSE_NAME[x] + "\u00a0" }), pct(w, 0)] : ""); })),
+      h("div", { class: "bshare", title: "Bonhams share", text: tot ? pct(liveUsd("Bonhams", y) / tot) : "—" }));
+  });
+  const fy = state.fy;
+  const tbl = h("div", { class: "tablewrap" }, h("table", null,
+    h("thead", null, h("tr", null, h("th", { text: `Live auctions, ${fyLabel(fy)}` }), h("th", { text: "Sales" }), h("th", { text: "Lots sold" }), h("th", { text: "Value" }), h("th", { text: "Share" }), h("th", { text: "Avg lot" }))),
+    h("tbody", null, [...HOUSES].sort((a, b) => liveUsd(b, fy) - liveUsd(a, fy)).map(x => {
+      const r = fyRows(x, fy, "live"); const v = sum(r, z => z[7]), n = sum(r, z => z[5]), sl = sum(r, z => z[3]);
+      const tot = sum(HOUSES, z => liveUsd(z, fy)); const m = meta(x) || {};
+      return h("tr", null,
+        h("td", { class: x === "Bonhams" ? "bonhams" : "", text: HOUSE_NAME[x] }),
+        h("td", { text: sl }), h("td", { text: m.reliable === false ? `${n.toLocaleString("en-AU")}*` : n.toLocaleString("en-AU") }),
+        h("td", { text: money(v) }), h("td", { text: tot ? pct(v / tot) : "—" }), h("td", { text: n ? money(v / n) : "—" }));
+    }))));
+  const anyUnreliable = HOUSES.some(x => (meta(x) || {}).reliable === false);
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Share of live jewellery auction value" }),
+      h("p", { text: "Buyer's total at each house's dedicated live jewellery sales. Online sales are left out because BARD captures Bonhams' online calendar but mostly only competitors' flagship live sales." }))),
+    h("div", { class: "grid2" },
+      h("div", null, h("div", { class: "share" }, rows),
+        h("div", { class: "legend" }, HOUSES.map(x => h("span", null, h("i", { class: "h-" + x }), HOUSE_NAME[x])), h("span", { style: "color:var(--bonhams);font-weight:600", text: "Right: Bonhams share" })),
+        h("p", { class: "basis", text: `Calculated on live auctions only. ${fyLabel(M().cur_fy)} appears once competitor sales for the year are captured.` })),
+      h("div", null, tbl, anyUnreliable ? h("p", { class: "basis", text: "* Sotheby's lot counts are indicative: some lots carry no sold/unsold status." }) : null)));
+}
+
+function blockRegions() {
+  const fys = completeFys();
+  const reg = M().reg || [];
+  const cell = (r, y) => {
+    const rows = reg.filter(z => z[1] === y && z[2] === r);
+    const tot = sum(rows, z => z[5]); const b = sum(rows.filter(z => z[0] === "Bonhams"), z => z[5]);
+    const leader = rows.filter(z => z[5] > 0).sort((a, c) => c[5] - a[5])[0];
+    if (!tot) return h("td", { text: "—" });
+    return h("td", null, b ? money(b) : "—", h("span", { class: "sh", text: b ? `${pct(b / tot, 0)} of ${money(tot)}` : `${HOUSE_NAME[leader[0]]} leads` }));
+  };
+  const present = REGIONS.filter(r => reg.some(z => z[2] === r && fys.includes(z[1]) && z[5] > 0));
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Bonhams by region" }),
+      h("p", { text: "Bonhams live value in each region, and its share of the live value BARD captures there across the four houses. Region comes from the sale location, or the sale currency where the location isn't named." }))),
+    h("div", { class: "tablewrap" }, h("table", null,
+      h("thead", null, h("tr", null, h("th", { text: "Region" }), fys.map(y => h("th", { text: fyLabel(y) })))),
+      h("tbody", null, present.map(r => h("tr", null, h("td", { text: r }), fys.map(y => cell(r, y))))))));
+}
+
+function blockTrend() {
+  const cur = new Date(String(M().generated_at).slice(0, 10) + "T00:00:00");
+  const months = [];
+  for (let i = 23; i >= 0; i--) { const d = new Date(cur.getFullYear(), cur.getMonth() - i, 1); months.push(d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0")); }
+  const label = m => { const [y, mo] = m.split("-"); return new Date(+y, +mo - 1, 1).toLocaleDateString("en-AU", { month: "short", year: "2-digit" }); };
+  const tiles = HOUSES.map(x => {
+    const vals = months.map(m => { const r = (M().trend || []).find(z => z[0] === x && z[1] === m); return r ? Number(r[2]) : 0; });
+    const max = Math.max(...vals, 1); const peakI = vals.indexOf(Math.max(...vals));
+    const W = 480, H = 86, gap = 3, bw = (W - gap * 23) / 24;
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", role: "img", "aria-label": `${HOUSE_NAME[x]} monthly live value, last 24 months` });
+    svg.appendChild(s("line", { x1: 0, x2: W, y1: H - 0.5, y2: H - 0.5, stroke: "var(--rule)", "stroke-width": 1 }));
+    vals.forEach((v, i) => {
+      if (!v) return;
+      const bh = Math.max(2, (v / max) * (H - 6));
+      const rect = s("rect", { x: i * (bw + gap), y: H - bh, width: bw, height: bh, rx: 1.5, fill: x === "Bonhams" ? "var(--bonhams)" : "var(--c2)" });
+      const t = s("title"); t.textContent = `${label(months[i])}: ${money(v)}`; rect.appendChild(t);
+      svg.appendChild(rect);
+    });
+    return h("div", { class: "mult" },
+      h("h4", { class: x === "Bonhams" ? "house-b" : "", style: x === "Bonhams" ? "color:var(--bonhams)" : "", text: HOUSE_NAME[x] }),
+      h("p", { class: "peak", text: vals[peakI] ? `Peak month ${label(months[peakI])}, ${money(vals[peakI])}. Own scale.` : "No live sales captured in this window." }),
+      svg,
+      h("div", { class: "axis" }, h("span", { text: label(months[0]) }), h("span", { text: label(months[23]) })));
+  });
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Live sale value by month" }),
+      h("p", { text: "Last 24 months. Each house is drawn on its own scale so the calendar shape is visible; compare sizes in the share table above." }))),
+    h("div", { class: "multiples" }, tiles));
+}
+
+function blockConcentration() {
+  const fy = state.fy;
+  const rows = (M().conc || []).filter(r => r[1] === fy);
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: `Reliance on top lots, ${fyLabel(fy)}` }),
+      h("p", { text: "Share of each house's live value from its top 10% and top 5% of lots, and from its single top lot." }))),
+    h("div", { class: "tablewrap" }, h("table", null,
+      h("thead", null, h("tr", null, h("th", { text: "House" }), h("th", { text: "Top 10%" }), h("th", { text: "Top 5%" }), h("th", { text: "Top lot" }), h("th", { style: "text-align:left", text: "Top lot sold" }))),
+      h("tbody", null, HOUSES.map(x => rows.find(r => r[0] === x)).filter(Boolean).map(r => {
+        const url = safeUrl(r[8]);
+        return h("tr", null,
+          h("td", { class: r[0] === "Bonhams" ? "bonhams" : "", text: HOUSE_NAME[r[0]] }),
+          h("td", { text: pct(r[4], 0) }), h("td", { text: pct(r[5], 0) }), h("td", { text: pct(r[6], 1) }),
+          h("td", { class: "wrapcell" }, url ? h("a", { href: url, target: "_blank", rel: "noopener", text: niceTitle(r[7]) }) : niceTitle(r[7]), h("span", { class: "sh", text: money(r[9]) })));
+      })))));
+}
+
+function blockOnline() {
+  const fys = completeFys();
+  const rows = fys.map(y => {
+    const on = fyRows("Bonhams", y, "online"), lv = fyRows("Bonhams", y, "live");
+    const ov = sum(on, r => r[7]), lvv = sum(lv, r => r[7]);
+    return h("tr", null, h("td", { text: fyLabel(y) }), h("td", { text: sum(on, r => r[3]) }), h("td", { text: sum(on, r => r[5]).toLocaleString("en-AU") }),
+      h("td", { text: money(ov) }), h("td", { text: pct(ov / (ov + lvv), 0) }), h("td", { text: sum(on, r => r[5]) ? money(ov / sum(on, r => r[5])) : "—" }));
+  });
+  return h("section", { class: "block" },
+    h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Bonhams online jewellery sales" }),
+      h("p", { text: "Excluded from market share, shown here so the full Bonhams calendar is visible." }))),
+    h("div", { class: "tablewrap" }, h("table", null,
+      h("thead", null, h("tr", null, h("th", { text: "Year" }), h("th", { text: "Sales" }), h("th", { text: "Lots sold" }), h("th", { text: "Value" }), h("th", { text: "Share of Bonhams total" }), h("th", { text: "Avg lot" }))),
+      h("tbody", null, rows))));
+}
+
+/* ---------- controls + boot ---------- */
+function syncControls() {
+  document.querySelectorAll("[data-role]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.role === state.role)));
+  document.querySelectorAll("[data-ccy]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ccy === state.ccy)));
+  const fx = (M().fx || [])[0];
+  document.getElementById("basis").textContent = `Buyer's total, dedicated jewellery sales. ${state.ccy} at ECB rates of ${fx ? fmtDate(fx[2]) : "—"}.`;
+}
+function render() {
+  const fys = completeFys();
+  if (!fys.includes(state.fy)) state.fy = fys[fys.length - 1];
+  syncControls(); renderTray(); renderMain();
+}
+document.querySelectorAll("[data-role]").forEach(b => b.addEventListener("click", () => { state.role = b.dataset.role; store.set("role", state.role); render(); }));
+document.querySelectorAll("[data-ccy]").forEach(b => b.addEventListener("click", () => { state.ccy = b.dataset.ccy; store.set("ccy", state.ccy); render(); }));
+
+render();
+setStatus("idle", `Saved snapshot from ${fmtDate(SNAPSHOT.generated_at.slice(0, 10))}. Connecting to BARD…`);
+
+(async () => {
+  try { mcp = window.claude && window.claude.use ? await window.claude.use("mcp") : null; } catch (e) { mcp = null; }
+  if (!mcp) { setStatus("warn", `Showing the saved snapshot from ${fmtDate(SNAPSHOT.generated_at.slice(0, 10))}. Open this page in Claude with the Supabase connector for live data.`); return; }
+  loadLive(false);
+})();
+</script>
+</body>
+</html>
