@@ -13,6 +13,6 @@ Claude plugin marketplace for **BARD — Bonhams Auction Research Database**.
 
 | Plugin | Version | Skills |
 |---|---|---|
-| [`bard`](plugins/bard) | 0.4.1 | `comparable-sales`, `lot-estimate`, `auction-query`, `bard-home` |
+| [`bard`](plugins/bard) | 0.4.2 | `comparable-sales`, `lot-estimate`, `auction-query`, `bard-home` |
 
 See [plugins/bard/README.md](plugins/bard/README.md) for setup (Supabase access token, connector) and usage.
