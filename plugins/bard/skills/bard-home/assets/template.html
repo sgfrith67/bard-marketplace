@@ -121,6 +121,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--tray-accent); outline: none; box-shadow: 0 0 0 1px var(--tray-accent); }
 .field textarea { resize: vertical; min-height: 64px; }
+.field .range { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; }
+.field .range .dash { color: var(--tray-muted); }
 .field input::placeholder, .field textarea::placeholder { color: #8A8A8A; }
 .request { background: var(--tray-2); border: 1px solid var(--tray-line); border-top: 4px solid var(--tray-accent); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .request .label { font-size: 13px; color: var(--tray-muted); }
@@ -334,7 +336,7 @@ const state = {
   fy: null,
   estFy: null,
   house: "all",
-  form: { type: "Ring", maker: "", stone: "Diamond", carat: "", period: "", condition: "", show: "AUD" }
+  form: { type: "Ring", maker: "", stone: "Diamond", carat: "", caratMax: "", period: "", condition: "", show: "AUD" }
 };
 
 /* ---------- helpers ---------- */
@@ -665,12 +667,19 @@ function requestText() {
   const f = state.form;
   const parts = [];
   const desc = [f.type.toLowerCase()];
-  if (f.stone && f.stone !== "Other / none") desc.unshift(f.carat ? `${f.carat} ct ${f.stone.toLowerCase()}` : f.stone.toLowerCase());
+  const lo = parseFloat(f.carat), hi = parseFloat(f.caratMax);
+  const hasLo = isFinite(lo) && lo > 0, hasHi = isFinite(hi) && hi > 0;
+  const [a, b] = hasLo && hasHi && hi < lo ? [hi, lo] : [lo, hi];
+  const ct = hasLo && hasHi && a !== b ? `${a}–${b} ct` : hasLo ? `${lo} ct` : "";
+  if (f.stone && f.stone !== "Other / none") desc.unshift(ct ? `${ct} ${f.stone.toLowerCase()}` : f.stone.toLowerCase());
+  else if (ct) desc.push(`(${ct})`);
+  if (!hasLo && hasHi) desc.push(`with a main stone of up to ${hi} ct`);
   let line = `Using BARD, find comparable sold lots for a ${desc.join(" ")}`;
   if (f.maker.trim()) line += ` by ${f.maker.trim()}`;
   if (f.period.trim()) line += `, ${f.period.trim()}`;
   parts.push(line + ".");
   if (f.condition.trim()) parts.push(`Condition and details: ${f.condition.trim()}`);
+  if (hasLo && hasHi && a !== b) parts.push(`Only use comparables whose main stone weighs between ${a} and ${b} carats, and show each comparable's carat weight.`);
   parts.push(`Search all four houses, sold lots only. For each comparable show hammer and buyer's total with a conversion to ${f.show}, flag whether the piece is made by or cased by the maker, and note any lots where the carat weight or quality differs materially.`);
   parts.push(`Then suggest an estimate range, explaining which comparables it rests on.`);
   return parts.join("\n\n");
@@ -694,6 +703,15 @@ function trayBuilder() {
   const sel = (key, opts) => { const el = h("select", null, opts.map(o => h("option", { value: o, selected: o === f[key] || null, text: o }))); return el; };
   const inp = (key, ph, type) => h("input", { type: type || "text", value: f[key], placeholder: ph, inputmode: type === "number" ? "decimal" : null, step: type === "number" ? "0.01" : null, min: type === "number" ? "0" : null });
   const ta = h("textarea", { placeholder: "e.g. Signed Cartier, platinum mount, GIA report, D colour VVS1" }); ta.value = f.condition;
+  const caratField = () => {
+    const lo = inp("carat", "From, e.g. 3", "number"), hi = inp("caratMax", "To (optional)", "number");
+    lo.id = "f-carat"; hi.id = "f-caratMax";
+    lo.setAttribute("aria-label", "Carat weight from"); hi.setAttribute("aria-label", "Carat weight to");
+    lo.addEventListener("input", () => { f.carat = lo.value; update(); });
+    hi.addEventListener("input", () => { f.caratMax = hi.value; update(); });
+    return h("div", { class: "field" }, h("label", { for: "f-carat", text: "Carat weight or range" }),
+      h("div", { class: "range" }, lo, h("span", { class: "dash", "aria-hidden": "true", text: "–" }), hi));
+  };
   const copyMsg = h("span", { class: "hint", "aria-live": "polite" });
   const copy = async () => {
     const text = requestText();
@@ -711,7 +729,7 @@ function trayBuilder() {
         field("type", "Type", sel("type", ["Ring", "Necklace", "Earrings", "Bracelet", "Brooch", "Pendant", "Tiara", "Cufflinks", "Loose stone", "Watch"])),
         field("stone", "Main stone", sel("stone", ["Diamond", "Coloured diamond", "Sapphire", "Ruby", "Emerald", "Pearl", "Jadeite", "Spinel", "Other / none"])),
         field("maker", "Maker or house", inp("maker", "e.g. Van Cleef & Arpels")),
-        field("carat", "Carat weight", inp("carat", "e.g. 3.02", "number")),
+        caratField(),
         field("period", "Period or date", inp("period", "e.g. circa 1930")),
         field("show", "Convert prices to", sel("show", ["AUD", "USD", "GBP", "HKD", "CHF", "EUR"])),
         field("condition", "Condition and details", ta, "full")

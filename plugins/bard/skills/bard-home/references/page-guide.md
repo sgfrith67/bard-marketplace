@@ -15,7 +15,7 @@ Use this reference to explain a number or to change a section. All figures come 
 
 | Section | What it shows |
 |---|---|
-| Price a piece | Builds a comparables request from the form. **Ask Claude** sends it to the chat window below the form: Claude runs read-only SELECT queries on BARD through the viewer's connector (a page tool, `query_bard`) and answers with comparables and an estimate range. Follow-ups keep the last few turns. **Copy request** still copies the text for pasting into Claude elsewhere |
+| Price a piece | Builds a comparables request from the form. Carat weight takes a single value or a from–to range; with a range the request asks Claude to keep comparables inside it and show each one's weight. **Ask Claude** sends it to the chat window below the form: Claude runs read-only SELECT queries on BARD through the viewer's connector (a page tool, `query_bard`) and answers with comparables and an estimate range. Follow-ups keep the last few turns. **Copy request** still copies the text for pasting into Claude elsewhere |
 | Top lots, last six months | Top 6 lots per house by USD buyer's total from the last 180 days (three per house on "All houses") |
 | How Bonhams estimates are landing | Bonhams sold lots with an estimate, by item type: share hammering below low estimate, within, or above high estimate, plus median hammer ÷ low estimate. Item type comes from keywords in the lot title |
 | Data notes | Latest sale captured per house and each house's caveats |

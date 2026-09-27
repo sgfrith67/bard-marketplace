@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Bonhams Auction Research Database (BARD) plugins for Claude.",
-    "version": "0.4.0"
+    "version": "0.4.1"
   },
   "plugins": [
     {
       "name": "bard",
       "source": "./plugins/bard",
       "description": "BARD (Bonhams Auction Research Database) — query Bonhams' own auction results archive in Supabase to find comparable sales, research lot estimates, and publish the BARD home page (Specialist and Management views).",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "author": {
         "name": "Bonhams"
       },
