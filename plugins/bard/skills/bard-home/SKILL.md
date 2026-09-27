@@ -20,9 +20,12 @@ Everything the page needs is bundled:
 
 ### 1. Find the Supabase connector
 
-Look for the `BARD_data` connector's `execute_sql` tool first (it ships with the BARD plugin), then any other Supabase connector (if tools are deferred, search for "BARD_data execute sql" or "supabase execute sql"). Note the connector's display name exactly as it appears. With the BARD plugin installed it's `BARD_data`; otherwise it's usually `Supabase`. The page calls the connector by that name, so pass it as `--server` in step 4. The plugin's `bard-supabase` server can also be used for steps 2–3 if `BARD_data` isn't connected.
+There are two different connectors in play, and they're easy to mix up:
 
-If there's no Supabase connector, carry on: the page still publishes and shows the bundled snapshot. Tell the user that live data needs the `BARD_data` connector (from the BARD plugin) connected and signed in to Supabase, or a Supabase connector added in claude.ai Settings → Connectors with access to the BARD project. Skip step 2.
+- **For your own queries in steps 2–3**, use any connector that reaches BARD: the plugin's `BARD_data` (or `bard-supabase`), or a claude.ai Supabase connector. If tools are deferred, search for "execute sql".
+- **For the published page (`--server` in step 4, and `capabilities` in step 5)**, you need a **claude.ai connector**: one the user added in claude.ai Settings → Connectors, whose tools appear as `mcp__<id>__execute_sql`. Plugin connectors like `BARD_data` run inside Claude Code only, so a published page can't reach them. Use the claude.ai connector's display name exactly as written (for example `Bonhams-BARD` or `Supabase`). If the session lists its connectors by name, take it from there.
+
+If there's no claude.ai connector for BARD, carry on: the page still publishes and shows the bundled snapshot. Tell the user that live data and the chat's BARD search need a Supabase connector added in claude.ai Settings → Connectors, pointing at the BARD project (for example the URL `https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true`). Skip step 2 if nothing reaches BARD at all.
 
 ### 2. Check BARD is reachable
 
@@ -54,7 +57,7 @@ To refresh:
 
 ```bash
 python <this skill's directory>/scripts/build_page.py \
-  --server "BARD_data" \
+  --server "<claude.ai connector name>" \
   --out <outputs dir>/bard-home.html
   # <outputs dir> is /mnt/user-data/outputs on claude.ai, or the session scratchpad in Claude Code
   # add --result <working dir>/bard_result.txt if you refreshed the snapshot
@@ -72,10 +75,10 @@ Publish with:
 - `file_path`: the `--out` path from step 4
 - `title`: `BARD — Bonhams Auction Research Database`
 - `favicon`: 💎
-- `capabilities`: `{"mcp": {"servers": [{"server": "<display name from step 1>", "tools": ["execute_sql"]}]}}`
+- `capabilities`: `{"mcp": {"servers": [{"server": "<claude.ai connector name from step 1>", "tools": ["execute_sql"]}]}, "sample": {}}`
 - `url`: the existing page's link, if step 5 found one. Omit it to create a new page.
 
-The capabilities declaration is what lets the published page call the viewer's connector. Without it the page can only ever show the snapshot.
+The `mcp` declaration lets the published page call the viewer's connector; without it the page can only ever show the snapshot. The `sample` declaration powers the **Ask Claude** chat in Price a piece; without it the chat is hidden and only Copy request remains. Both are asked for once, the first time the viewer uses them.
 
 If the Artifact tool isn't available, for example outside claude.ai, present the HTML file instead. Tell the user it will show the snapshot only, because live data needs the page opened in claude.ai.
 
@@ -86,6 +89,7 @@ Keep it short:
 - **Link:** the page link, and whether it's new or an update of their existing page.
 - **Live data:** the first time they open it, Claude asks permission to use their Supabase connector once. After that it loads live, and shows "Waking the database…" for up to a minute if BARD has been idle.
 - **Views:** Specialist and Management switch at the top, and USD/AUD converts every figure.
+- **Ask Claude:** in Price a piece, *Ask Claude* sends the generated request to Claude inside the page. Claude searches BARD through their connector and replies with comparables and an estimate, and they can ask follow-ups. It runs on the viewer's own Claude usage.
 - **Data caveats:** any caveats from step 2, especially a house with no sales captured recently.
 - **Snapshot:** whether the fallback snapshot was refreshed, and its date.
 

@@ -57,6 +57,9 @@ select json_build_object(
   'meta', (select json_agg(json_build_array(auction_house, latest_sale_date, sell_through_reliable, caveat, dedicated_live_sales) order by auction_house) from bard.meta_v),
   'fy', (select json_agg(json_build_array(h, fy, f, sales, offered, sold, unk, usd) order by h, fy, f) from fy_tot),
   'reg', (select json_agg(json_build_array(h, fy, r, sales, sold, usd) order by h, fy, r) from reg),
+  'reg_last', (select json_agg(json_build_array(h, r, d, s) order by h, r) from (
+      select distinct on (auction_house, region) auction_house h, region r, sale_date d, auction_name s
+      from l where sale_format = 'live' and is_sold order by auction_house, region, sale_date desc) z),
   'ytd', (select json_agg(json_build_array(h, f, cur_usd, prev_usd, cur_sold, prev_sold, cur_sales, prev_sales) order by h, f) from ytd),
   'trend', (select json_agg(json_build_array(h, m, usd) order by h, m) from trend),
   'conc', (select json_agg(json_build_array(auction_house, fy, lots_sold, round(total_usd), top10pct_share, top5pct_share, top_lot_share, left(top_lot_title, 100), top_lot_url, round(top_lot_usd)) order by auction_house, fy)

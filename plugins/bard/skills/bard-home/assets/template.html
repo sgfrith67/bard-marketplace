@@ -129,6 +129,33 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .btn:hover { background: #000000; border-color: #000000; color: var(--yellow); }
 .request .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 .request .hint { font-size: 13px; color: var(--tray-muted); }
+.btn.ghost { background: transparent; color: var(--tray-ink); border-color: var(--tray-line-strong); }
+.btn.ghost:hover { background: var(--tray-ink); color: var(--tray); border-color: var(--tray-ink); }
+.btn[disabled] { opacity: .5; cursor: default; }
+
+/* chat */
+.chat { margin-top: 24px; background: var(--tray-2); border: 1px solid var(--tray-line); border-top: 4px solid var(--yellow); min-width: 0; }
+.chat .chathead { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 18px; border-bottom: 1px solid var(--tray-line); }
+.chat .chathead h3 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
+.chat .chathead p { margin: 0; font-size: 13px; color: var(--tray-muted); }
+.msgs { padding: 6px 18px; max-height: 560px; overflow-y: auto; }
+.msg { padding: 14px 0; border-bottom: 1px solid var(--tray-line); min-width: 0; }
+.msg:last-child { border-bottom: 0; }
+.msg .who { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--tray-muted); margin-bottom: 6px; }
+.msg.user .body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--tray-muted); font-size: 14px; }
+.msg.bot .body { font-size: 14.5px; line-height: 1.6; overflow-wrap: anywhere; }
+.msg.bot .body p { margin: 0 0 10px; }
+.msg.bot .body h4 { font-family: var(--display); font-weight: 400; font-size: 17px; margin: 14px 0 6px; }
+.msg.bot .body ul, .msg.bot .body ol { margin: 0 0 10px; padding-left: 20px; }
+.msg.bot .body .tablewrap { margin: 6px 0 12px; }
+.msg.bot .body table { font-size: 13px; }
+.msg.bot .body th, .msg.bot .body td { white-space: normal; text-align: left; min-width: 64px; vertical-align: top; }
+.msg.bot .body code { font-size: 13px; background: var(--tray); padding: 0 4px; }
+.msg .note { font-size: 13px; color: var(--tray-muted); margin-top: 6px; }
+.msg .think { color: var(--tray-muted); font-size: 14px; }
+.composer { display: flex; gap: 10px; align-items: flex-end; padding: 12px 18px 16px; border-top: 1px solid var(--tray-line); flex-wrap: wrap; }
+.composer textarea { flex: 1 1 260px; min-height: 44px; max-height: 180px; resize: vertical; background: var(--tray); border: 1px solid var(--tray-line); padding: 9px 11px; color: var(--tray-ink); border-radius: 0; }
+.composer textarea:focus { border-color: var(--tray-accent); outline: none; box-shadow: 0 0 0 1px var(--tray-accent); }
 
 /* headline figures — sized to their container so values never collide */
 .figures { container-type: inline-size; display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 0; }
@@ -406,7 +433,7 @@ async function loadLive(force) {
   if (!mcp || loading) return;
   loading = true;
   setStatus("busy", state.source === "live" ? "Refreshing live data…" : "Loading live data from BARD…");
-  const call = () => mcp.callTool(SERVER, TOOL, { project_id: PROJECT_ID, query: MODEL_SQL },
+  const call = () => runSql(MODEL_SQL,
     { cache: force ? { staleTime: 300000, gcTime: 86400000, refresh: true } : { staleTime: 300000, gcTime: 86400000 } });
   let attempt = 0;
   while (true) {
@@ -457,6 +484,182 @@ function handleLiveError(e) {
   setStatus("warn", text, action);
 }
 
+/* ---------- SQL through the viewer's connector ---------- */
+// Project-scoped connectors (URL carries project_ref) take {query}; the generic
+// Supabase connector also needs project_id. Try one shape, flip once if refused.
+let sqlWithProject = true;
+async function runSql(query, opts) {
+  const args = () => sqlWithProject ? { project_id: PROJECT_ID, query } : { query };
+  try { return await mcp.callTool(SERVER, TOOL, args(), opts); }
+  catch (e) {
+    const m = (e && e.message) || "";
+    const shapeErr = (e && (e.code === "tool_error" || e.code === "bad_request")) &&
+      /project_id|additional propert|unrecognized|unexpected (key|field|propert)|must not have|required/i.test(m);
+    if (!shapeErr) throw e;
+    sqlWithProject = !sqlWithProject;
+    return await mcp.callTool(SERVER, TOOL, args(), opts);
+  }
+}
+function resultText(res) {
+  const p = res && typeof res === "object" && "payload" in res ? res.payload : res;
+  let text = typeof p === "string" ? p : (p && typeof p.result === "string") ? p.result : null;
+  if (text == null && res && Array.isArray(res.content)) text = res.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+  if (text == null) text = JSON.stringify(p);
+  const m = text.match(/<untrusted-data-[^>]*>\s*([\s\S]*?)\s*<\/untrusted-data-/);
+  return m ? m[1] : text;
+}
+
+/* ---------- chat with Claude ---------- */
+let sample = null, sampleTools = false;
+const canSearch = () => !!(sampleTools && mcp);
+const chat = { turns: [], busy: false, ctl: null, live: "", error: "" };
+const CHAT_RULES = `You are a jewellery research assistant inside BARD, the Bonhams Auction Research Database. A Bonhams specialist is asking for comparable sales and an estimate for a piece.
+
+Use the query_bard tool to read the archive. It runs ONE read-only Postgres SELECT (or WITH ... SELECT) and returns rows as JSON.
+
+Main table: public."Auction_results" (quote the name). Columns: auction_house ('Bonhams','Christies','Sothebys','Phillips'), auction_name, auction_date (ISO text 'YYYY-MM-DD'), lot_number, lot_title, lot_description (free text: stones, carats, metal, maker, period), est_low, est_high, hammer_price (Bonhams only), sold_price (buyer's total), status ('SOLD','NOT_SOLD','UNSOLD' or null), withdrawn, currency ('USD','GBP','HKD','CHF','EUR','AUD','CNY'), lot_url.
+USD conversion: bard.fx_v (currency, usd_rate, rate_date) — USD value = price * usd_rate. For AUD divide the USD value by the AUD usd_rate.
+
+How to search:
+- Filter status = 'SOLD'. Match with ILIKE on lot_title and lot_description using the 2-4 most distinctive terms; loosen or tighten based on how many rows come back.
+- Select only the columns you need, left(lot_description, 300) at most, order by auction_date desc, LIMIT 25 or fewer.
+- Carat weights live inside lot_description as text: read them rather than parsing in SQL.
+- Two or three queries is usually enough. Never invent a lot, price or date that did not come back from a query.
+
+Answer format (Markdown):
+- A one-line summary of the piece as you understood it.
+- A table of the closest comparables: house, date, title, estimate, hammer, buyer's total (sale currency), converted value, and the lot link.
+- A suggested estimate range, with 2-4 sentences on which comparables it rests on and how they sold against their own estimates.
+- One line noting that this uses archive comparables only and needs checking against condition, provenance and current market.
+Keep it concise. If few good comparables exist, say so plainly.`;
+
+function queryTool() {
+  return {
+    name: "query_bard",
+    description: "Run one read-only SQL SELECT against the BARD auction archive (Postgres) and get the rows back as JSON text. Keep results small: select few columns and LIMIT 25 or fewer.",
+    inputSchema: { type: "object", properties: { sql: { type: "string", description: "A single SELECT or WITH ... SELECT statement. No semicolons inside, no writes." } }, required: ["sql"] },
+    async execute(input, ctx) {
+      let q = String(input && input.sql || "").trim().replace(/;\s*$/, "");
+      if (!/^(select|with)\b/i.test(q)) throw new Error("Only a single SELECT or WITH query is allowed.");
+      if (q.includes(";")) throw new Error("Send one statement at a time, without semicolons.");
+      if (/\b(insert|update|delete|drop|alter|create|grant|revoke|truncate|copy|vacuum|call|do|set\s+role|pg_read|pg_ls|lo_import|dblink)\b/i.test(q)) throw new Error("That statement isn't allowed. Read-only SELECT queries only.");
+      setChatStatus("Searching BARD…");
+      const res = await runSql(q, { cache: false, signal: ctx && ctx.signal });
+      const text = resultText(res);
+      return text.length > 24000 ? text.slice(0, 24000) + "\n…(truncated — select fewer columns or rows)" : text;
+    }
+  };
+}
+
+function setChatStatus(t) { const el = document.getElementById("chat-live"); if (el && !chat.live) el.replaceChildren(h("span", { class: "think", text: t })); }
+
+async function sendChat(text) {
+  text = String(text || "").trim();
+  if (!text || chat.busy || !sample) return;
+  chat.turns.push({ role: "user", content: text });
+  chat.busy = true; chat.live = ""; chat.error = "";
+  chat.ctl = new AbortController();
+  renderChat();
+  const keep = chat.turns.slice(-8);                       // instructions turn + recent conversation
+  const input = [{ role: "user", content: CHAT_RULES }, ...keep];
+  try {
+    const opts = { signal: chat.ctl.signal, onText: ({ text }) => { chat.live = text; paintLive(); } };
+    if (canSearch()) opts.tools = [queryTool()]; else opts.cache = false;
+    const { text: answer, truncated } = await sample(input, opts);
+    chat.turns.push({ role: "assistant", content: answer + (truncated ? "\n\n_(Cut short — ask a narrower follow-up.)_" : "") });
+  } catch (e) {
+    const code = e && e.code;
+    if (e && e.text) chat.turns.push({ role: "assistant", content: e.text + (code === "cancelled" ? "\n\n_(Stopped.)_" : "\n\n_(Interrupted.)_") });
+    chat.error = ({
+      cancelled: "",
+      not_granted: "Claude isn't allowed for this page. Allow it when prompted, or copy the request instead.",
+      sampling_disabled: "Claude isn't available on this account. Copy the request instead.",
+      rate_limited: "Too many requests just now. Wait a moment, then send again.",
+      session_expired: "Sign in to Claude again, then send again.",
+      refused: "Claude couldn't help with that request. Try rewording it.",
+      prompt_too_large: "The conversation is too long. Clear it and start again.",
+      tools_unavailable: "This view can't search BARD from the page. Copy the request into Claude instead."
+    })[code] ?? "Something went wrong reaching Claude. Send again to retry.";
+    if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(code)) sample = null;
+  } finally {
+    chat.busy = false; chat.live = ""; chat.ctl = null;
+    renderChat();
+  }
+}
+
+// Small, safe Markdown: escapes everything, then headings, lists, tables, bold, italics, code, https links.
+function mdInline(t) {
+  const esc = t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return esc
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, "$1<i>$2</i>")
+    .replace(/(^|\s)_\(([^)]*)\)_(?=\s|$)/g, "$1<i>($2)</i>")
+    .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+    .replace(/(^|[\s(])(https:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener noreferrer">link</a>');
+}
+function mdToNodes(md) {
+  const out = document.createElement("div");
+  const lines = String(md).replace(/\r/g, "").split("\n");
+  let i = 0;
+  const html = [];
+  while (i < lines.length) {
+    const ln = lines[i];
+    if (/^\s*\|.*\|\s*$/.test(ln) && i + 1 < lines.length && /^\s*\|?\s*:?-{2,}/.test(lines[i + 1])) {
+      const cells = r => r.trim().replace(/^\||\|$/g, "").split("|").map(c => mdInline(c.trim()));
+      const head = cells(ln); i += 2; const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(cells(lines[i++]));
+      html.push('<div class="tablewrap"><table><thead><tr>' + head.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>" +
+        rows.map(r => "<tr>" + r.map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table></div>");
+      continue;
+    }
+    if (/^\s*#{1,6}\s+/.test(ln)) { html.push("<h4>" + mdInline(ln.replace(/^\s*#+\s+/, "")) + "</h4>"); i++; continue; }
+    if (/^\s*([-*•]|\d+[.)])\s+/.test(ln)) {
+      const ordered = /^\s*\d/.test(ln); const items = [];
+      while (i < lines.length && /^\s*([-*•]|\d+[.)])\s+/.test(lines[i])) items.push("<li>" + mdInline(lines[i++].replace(/^\s*([-*•]|\d+[.)])\s+/, "")) + "</li>");
+      html.push((ordered ? "<ol>" : "<ul>") + items.join("") + (ordered ? "</ol>" : "</ul>"));
+      continue;
+    }
+    if (!ln.trim()) { i++; continue; }
+    const para = [];
+    while (i < lines.length && lines[i].trim() && !/^\s*(#{1,6}\s|[-*•]\s|\d+[.)]\s|\|)/.test(lines[i])) para.push(mdInline(lines[i++]));
+    if (para.length) html.push("<p>" + para.join("<br>") + "</p>"); else i++;
+  }
+  out.innerHTML = html.join("");
+  return out;
+}
+function paintLive() {
+  const el = document.getElementById("chat-live");
+  if (el && chat.live) el.replaceChildren(mdToNodes(chat.live));
+  const box = document.getElementById("chat-msgs"); if (box) box.scrollTop = box.scrollHeight;
+}
+function renderChat() {
+  const host = document.getElementById("chat"); if (host) host.replaceWith(chatPanel());
+  paintLive();
+}
+function chatPanel() {
+  if (!sample) return h("div", { id: "chat", hidden: true });
+  const msgs = h("div", { class: "msgs", id: "chat-msgs", "aria-live": "polite" },
+    chat.turns.map(t => h("div", { class: "msg " + (t.role === "user" ? "user" : "bot") },
+      h("div", { class: "who", text: t.role === "user" ? "You" : "Claude" }),
+      t.role === "user" ? h("div", { class: "body", text: t.content }) : h("div", { class: "body" }, mdToNodes(t.content)))),
+    chat.busy ? h("div", { class: "msg bot" }, h("div", { class: "who", text: "Claude" }),
+      h("div", { class: "body", id: "chat-live" }, h("span", { class: "think", text: canSearch() ? "Thinking… searching BARD can take a minute." : "Thinking…" }))) : null,
+    chat.error ? h("div", { class: "msg" }, h("div", { class: "note", text: chat.error })) : null);
+  const box = h("textarea", { id: "chat-input", placeholder: chat.turns.length ? "Ask a follow-up, e.g. only Bonhams, or the last three years" : "Or type your own question about a piece", "aria-label": "Message Claude" });
+  box.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); const v = box.value; box.value = ""; sendChat(v); } });
+  const send = h("button", { class: "btn", type: "button", disabled: chat.busy || null, text: "Send", onclick: () => { const v = box.value; box.value = ""; sendChat(v); } });
+  const stop = h("button", { class: "btn ghost", type: "button", text: "Stop", onclick: () => chat.ctl && chat.ctl.abort() });
+  const clear = h("button", { class: "linkbtn", type: "button", text: "Clear", disabled: chat.busy || null, onclick: () => { chat.turns = []; chat.error = ""; renderChat(); } });
+  return h("div", { class: "chat", id: "chat" },
+    h("div", { class: "chathead" },
+      h("div", null, h("h3", { text: "Ask Claude" }),
+        h("p", { text: canSearch() ? "Claude searches BARD for comparables and suggests an estimate. It uses your Claude account." : "Claude answers from what you send. For comparables from BARD, copy the request into Claude with the Bonhams plugin." })),
+      chat.turns.length ? clear : null),
+    chat.turns.length || chat.busy ? msgs : null,
+    h("div", { class: "composer" }, box, chat.busy ? stop : send));
+}
+
 /* ---------- comps request ---------- */
 function requestText() {
   const f = state.form;
@@ -502,7 +705,7 @@ function trayBuilder() {
   };
   return h("div", null,
     h("h2", { text: "Price a piece" }),
-    h("p", { class: "lede", text: "Describe the lot and BARD writes the comparables request. Paste it into Claude with the Bonhams plugin to get sold comparables from all four houses and a suggested estimate." }),
+    h("p", { class: "lede", text: sample ? "Describe the lot and BARD writes the comparables request. Send it to Claude below for sold comparables from all four houses and a suggested estimate, or copy it into Claude with the Bonhams plugin." : "Describe the lot and BARD writes the comparables request. Paste it into Claude with the Bonhams plugin to get sold comparables from all four houses and a suggested estimate." }),
     h("div", { class: "builder" },
       h("div", { class: "fields" },
         field("type", "Type", sel("type", ["Ring", "Necklace", "Earrings", "Bracelet", "Brooch", "Pendant", "Tiara", "Cufflinks", "Loose stone", "Watch"])),
@@ -516,9 +719,12 @@ function trayBuilder() {
       h("div", { class: "request" },
         h("span", { class: "label", text: "Your request" }),
         pre,
-        h("div", { class: "row" }, h("button", { class: "btn", type: "button", onclick: copy, text: "Copy request" }), copyMsg)
+        h("div", { class: "row" },
+          sample ? h("button", { class: "btn", type: "button", disabled: chat.busy || null, onclick: () => { sendChat(requestText()); const c = document.getElementById("chat"); if (c) c.scrollIntoView({ behavior: "smooth", block: "start" }); }, text: "Ask Claude" }) : null,
+          h("button", { class: sample ? "btn ghost" : "btn", type: "button", onclick: copy, text: "Copy request" }), copyMsg)
       )
-    )
+    ),
+    chatPanel()
   );
 }
 
@@ -708,12 +914,19 @@ function blockRegions() {
     return h("td", null, b ? money(b) : "—", h("span", { class: "sh", text: b ? `${pct(b / tot, 0)} of ${money(tot)}` : `${HOUSE_NAME[leader[0]]} leads` }));
   };
   const present = REGIONS.filter(r => reg.some(z => z[2] === r && fys.includes(z[1]) && z[5] > 0));
+  const firstFyStart = `${fys[0] - 1}-07-01`;
+  const lastB = r => (M().reg_last || []).find(z => z[0] === "Bonhams" && z[1] === r);
+  const regionCell = r => {
+    const lb = lastB(r);
+    const note = lb && lb[2] < firstFyStart ? `Bonhams' last live sale here: ${lb[3]}, ${fmtDate(lb[2])}` : null;
+    return h("td", null, r, note ? h("span", { class: "sh", text: note }) : null);
+  };
   return h("section", { class: "block" },
     h("div", { class: "blockhead" }, h("div", null, h("h3", { text: "Bonhams by region" }),
       h("p", { text: "Bonhams live value in each region, and its share of the live value BARD captures there across the four houses. Region comes from the sale location, or the sale currency where the location isn't named." }))),
     h("div", { class: "tablewrap" }, h("table", null,
       h("thead", null, h("tr", null, h("th", { text: "Region" }), fys.map(y => h("th", { text: fyLabel(y) })))),
-      h("tbody", null, present.map(r => h("tr", null, h("td", { text: r }), fys.map(y => cell(r, y))))))));
+      h("tbody", null, present.map(r => h("tr", null, regionCell(r), fys.map(y => cell(r, y))))))));
 }
 
 function blockTrend() {
@@ -798,8 +1011,14 @@ render();
 setStatus("idle", `Saved snapshot from ${fmtDate(SNAPSHOT.generated_at.slice(0, 10))}. Connecting to BARD…`);
 
 (async () => {
+  try { sample = window.claude && window.claude.use ? await window.claude.use("sample") : null; } catch (e) { sample = null; }
+  if (sample) { try { const lim = await sample.limits(); sampleTools = !!(lim && lim.tools); } catch (e) { sampleTools = false; } }
+  if (sample) renderTray();
+})();
+(async () => {
   try { mcp = window.claude && window.claude.use ? await window.claude.use("mcp") : null; } catch (e) { mcp = null; }
   if (!mcp) { setStatus("warn", `Showing the saved snapshot from ${fmtDate(SNAPSHOT.generated_at.slice(0, 10))}. Open this page in Claude with the Supabase connector for live data.`); return; }
+  if (sample) renderTray();
   loadLive(false);
 })();
 </script>

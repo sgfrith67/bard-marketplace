@@ -9,13 +9,13 @@ Use this reference to explain a number or to change a section. All figures come 
 - **Values:** buyer's total (`sold_price`) is the only figure all four houses publish. Hammer exists for Bonhams only, and estimate performance uses hammer because estimates are set against it.
 - **Currency:** every value is converted to USD at the **latest ECB reference rate**, refreshed daily inside the database, and the same rate applies to every period. Year-on-year changes therefore exclude currency movement. AUD figures on the page divide by the latest AUD rate.
 - **Financial year:** July to June, labelled by the June year (FY26 = Jul 2025 – Jun 2026). Share charts show only completed years. The current year appears once competitor sales for it are captured.
-- **Region:** taken from the city in the sale name (Geneva → Switzerland, Hong Kong → Asia, and so on), falling back to the sale currency.
+- **Region:** taken from the city in the sale name (Geneva → Switzerland, Hong Kong → Asia, Paris/Monaco/Milan → Europe, and so on), falling back to the sale currency. Only sales whose name contains "jewel" count, so French-titled sales such as Christie's *Joaillerie Paris* are currently left out; widening that is a database view change for Investair.
 
 ## Specialist view
 
 | Section | What it shows |
 |---|---|
-| Price a piece | Builds a comparables request from the form. Nothing is queried; the text is for pasting into Claude with the Bonhams plugin |
+| Price a piece | Builds a comparables request from the form. **Ask Claude** sends it to the chat window below the form: Claude runs read-only SELECT queries on BARD through the viewer's connector (a page tool, `query_bard`) and answers with comparables and an estimate range. Follow-ups keep the last few turns. **Copy request** still copies the text for pasting into Claude elsewhere |
 | Top lots, last six months | Top 6 lots per house by USD buyer's total from the last 180 days (three per house on "All houses") |
 | How Bonhams estimates are landing | Bonhams sold lots with an estimate, by item type: share hammering below low estimate, within, or above high estimate, plus median hammer ÷ low estimate. Item type comes from keywords in the lot title |
 | Data notes | Latest sale captured per house and each house's caveats |
@@ -26,7 +26,7 @@ Use this reference to explain a number or to change a section. All figures come 
 |---|---|
 | Headline figures | Bonhams live value for the chosen year and change on the prior year; share of the four houses' live value and rank; sell-through (sold ÷ offered, live and online); current year to date against the same day last year, live and online |
 | Share of live value | Each house's share of live buyer's total, by year, with a table of sales, lots sold, value, share and average lot |
-| Bonhams by region | Bonhams live value per region and its share of captured live value there. Where Bonhams had no sale, the leading house is named |
+| Bonhams by region | Bonhams live value per region and its share of captured live value there. Where Bonhams had no sale, the leading house is named. If Bonhams' last live sale in a region predates the years shown, the region label says which sale and when (e.g. Europe: Paris Jewels, 25 May 2022) |
 | Live sale value by month | Last 24 months, one small chart per house, each on its own scale |
 | Reliance on top lots | Share of each house's live value from its top 10% and top 5% of lots, and from its single top lot |
 | Bonhams online sales | Online sales, lots, value, share of Bonhams' total and average lot |
