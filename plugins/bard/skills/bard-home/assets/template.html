@@ -154,6 +154,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .msg.bot .body th, .msg.bot .body td { white-space: normal; text-align: left; min-width: 64px; vertical-align: top; }
 .msg.bot .body code { font-size: 13px; background: var(--tray); padding: 0 4px; }
 .msg .note { font-size: 13px; color: var(--tray-muted); margin-top: 6px; }
+.msg .tools { display: flex; gap: 12px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.msg .tools .hint { font-size: 13px; color: var(--tray-muted); }
 .msg .think { color: var(--tray-muted); font-size: 14px; }
 .composer { display: flex; gap: 10px; align-items: flex-end; padding: 12px 18px 16px; border-top: 1px solid var(--tray-line); flex-wrap: wrap; }
 .composer textarea { flex: 1 1 260px; min-height: 44px; max-height: 180px; resize: vertical; background: var(--tray); border: 1px solid var(--tray-line); padding: 9px 11px; color: var(--tray-ink); border-radius: 0; }
@@ -630,6 +632,50 @@ function mdToNodes(md) {
   out.innerHTML = html.join("");
   return out;
 }
+// Copy an answer for email or a document: rich HTML (tables keep their grid) plus a plain-text version.
+function answerPlain(md) {
+  return String(md)
+    .split("\n").filter(l => !/^\s*\|?\s*:?-{2,}[-|:\s]*$/.test(l))
+    .map(l => /^\s*\|.*\|\s*$/.test(l) ? l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim()).join("\t") : l)
+    .join("\n")
+    .replace(/^\s*#{1,6}\s+/gm, "")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|\s)_\(([^)]*)\)_/g, "$1($2)")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\((https:\/\/[^)\s]+)\)/g, "$1 ($2)");
+}
+function answerHtml(md) {
+  const node = mdToNodes(md);
+  node.querySelectorAll("table").forEach(t => t.setAttribute("style", "border-collapse:collapse;font-family:Arial,sans-serif;font-size:13px"));
+  node.querySelectorAll("th,td").forEach(c => c.setAttribute("style", "border:1px solid #cccccc;padding:4px 8px;text-align:left;vertical-align:top"));
+  node.querySelectorAll("th").forEach(c => c.style.background = "#f2f2f2");
+  return `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">${node.innerHTML}</div>`;
+}
+async function copyAnswer(md, bodyEl, msgEl) {
+  const plain = answerPlain(md);
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([answerHtml(md)], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" })
+      })]);
+    } else {
+      await navigator.clipboard.writeText(plain);
+    }
+    msgEl.textContent = "Copied. Paste it into an email or document.";
+  } catch (e) {
+    try { await navigator.clipboard.writeText(plain); msgEl.textContent = "Copied as plain text."; return; } catch (e2) {}
+    const r = document.createRange(); r.selectNodeContents(bodyEl); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+    msgEl.textContent = "Selected. Press Ctrl+C (⌘C on Mac) to copy.";
+  }
+}
+function botMessage(t) {
+  const body = h("div", { class: "body" }, mdToNodes(t.content));
+  const msg = h("span", { class: "hint", "aria-live": "polite" });
+  return h("div", { class: "msg bot" },
+    h("div", { class: "who", text: "Claude" }), body,
+    h("div", { class: "tools" }, h("button", { class: "linkbtn", type: "button", text: "Copy answer", onclick: () => copyAnswer(t.content, body, msg) }), msg));
+}
 function paintLive() {
   const el = document.getElementById("chat-live");
   if (el && chat.live) el.replaceChildren(mdToNodes(chat.live));
@@ -642,9 +688,9 @@ function renderChat() {
 function chatPanel() {
   if (!sample) return h("div", { id: "chat", hidden: true });
   const msgs = h("div", { class: "msgs", id: "chat-msgs", "aria-live": "polite" },
-    chat.turns.map(t => h("div", { class: "msg " + (t.role === "user" ? "user" : "bot") },
-      h("div", { class: "who", text: t.role === "user" ? "You" : "Claude" }),
-      t.role === "user" ? h("div", { class: "body", text: t.content }) : h("div", { class: "body" }, mdToNodes(t.content)))),
+    chat.turns.map(t => t.role === "user"
+      ? h("div", { class: "msg user" }, h("div", { class: "who", text: "You" }), h("div", { class: "body", text: t.content }))
+      : botMessage(t)),
     chat.busy ? h("div", { class: "msg bot" }, h("div", { class: "who", text: "Claude" }),
       h("div", { class: "body", id: "chat-live" }, h("span", { class: "think", text: canSearch() ? "Thinking… searching BARD can take a minute." : "Thinking…" }))) : null,
     chat.error ? h("div", { class: "msg" }, h("div", { class: "note", text: chat.error })) : null);
