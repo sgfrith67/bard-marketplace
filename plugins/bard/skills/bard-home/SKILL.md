@@ -18,14 +18,12 @@ Everything the page needs is bundled:
 
 ## Workflow
 
-### 1. Find the Supabase connector
+### 1. Find a SQL connector
 
-There are two different connectors in play, and they're easy to mix up:
+The page's live data and the chat's BARD search both run SQL (`execute_sql`) over the `bard` database views. **The plugin's own connector, `BARD_data`, is the Zuplo gateway: it only offers `query_table` (reads rows from `public` tables) and can't run SQL or reach the `bard` views.** So:
 
-- **For your own queries in steps 2–3**, use any connector that reaches BARD: the plugin's `BARD_data` (or `bard-supabase`), or a claude.ai Supabase connector. If tools are deferred, search for "execute sql".
-- **For the published page (`--server` in step 4, and `capabilities` in step 5)**, you need a **claude.ai connector**: one the user added in claude.ai Settings → Connectors, whose tools appear as `mcp__<id>__execute_sql`. Plugin connectors like `BARD_data` run inside Claude Code only, so a published page can't reach them. Use the claude.ai connector's display name exactly as written (for example `Bonhams-BARD` or `Supabase`). If the session lists its connectors by name, take it from there.
-
-If there's no claude.ai connector for BARD, carry on: the page still publishes and shows the bundled snapshot. Tell the user that live data and the chat's BARD search need a Supabase connector added in claude.ai Settings → Connectors, pointing at the BARD project (for example the URL `https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true`). Skip step 2 if nothing reaches BARD at all.
+- **For steps 2–3 and for the published page**, you need a **claude.ai Supabase connector** with an `execute_sql` tool, pointed at the BARD project (for example the URL `https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true`). Its tools appear as `mcp__<id>__execute_sql`. Note its display name exactly as written (for example `Bonhams-BARD`); if the session lists its connectors by name, take it from there. Plugin connectors run inside Claude Code only, so a published page can't reach them anyway.
+- **If there's no such connector**, carry on without live data: skip steps 2–3, build with the bundled snapshot, and publish with `capabilities: {"sample": {}}` only (no `mcp`). The page shows the snapshot, and Ask Claude still works but answers without searching BARD. Tell the user that live data and the chat's search need a SQL-capable claude.ai connector, or new gateway endpoints for the page's data (Investair's job).
 
 ### 2. Check BARD is reachable
 
@@ -64,7 +62,7 @@ python <this skill's directory>/scripts/build_page.py \
   # add --yellow "#RRGGBB" only if the user gives Bonhams' exact yellow
 ```
 
-Use the connector display name from step 1 for `--server`. The script prints JSON with the output path and snapshot age. If it exits with an error, read the message: a malformed `--result` file is the usual cause. Retry without `--result` rather than hand-editing the template.
+Use the connector display name from step 1 for `--server` (any value is fine when there's no SQL connector; the page then shows the snapshot). The script prints JSON with the output path and snapshot age. If it exits with an error, read the message: a malformed `--result` file is the usual cause. Retry without `--result` rather than hand-editing the template.
 
 ### 5. Publish, or update the existing page
 
@@ -77,6 +75,7 @@ Publish with:
 - `favicon`: 💎
 - `capabilities`: `{"mcp": {"servers": [{"server": "<claude.ai connector name from step 1>", "tools": ["execute_sql"]}]}, "sample": {}}`
 - `url`: the existing page's link, if step 5 found one. Omit it to create a new page.
+- With no SQL connector (step 1), use `capabilities: {"sample": {}}` instead.
 
 The `mcp` declaration lets the published page call the viewer's connector; without it the page can only ever show the snapshot. The `sample` declaration powers the **Ask Claude** chat in Price a piece; without it the chat is hidden and only Copy request remains. Both are asked for once, the first time the viewer uses them.
 

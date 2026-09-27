@@ -1,6 +1,6 @@
 # How the BARD home page calculates its figures
 
-Use this reference to explain a number or to change a section. All figures come from one query (`assets/model.sql`), which reads the `bard` views in the BARD Supabase database.
+Use this reference to explain a number or to change a section. All figures come from one query (`assets/model.sql`), which reads the `bard` views in the BARD Supabase database. That query needs a SQL-capable connector (`execute_sql`); the Zuplo gateway (`query_table`) can't run it, so through the gateway alone the page shows its saved snapshot.
 
 ## Scope rules applied everywhere
 

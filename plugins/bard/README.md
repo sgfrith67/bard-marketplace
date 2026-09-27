@@ -1,32 +1,30 @@
 # BARD — Bonhams Auction Research Database
 
-BARD connects Claude to Bonhams' own Supabase-backed archive of jewellery auction results — currently ~50,000 lots from Bonhams, Christie's, Sotheby's, and Phillips (2013–present) — and adds four skills on top of it.
+BARD connects Claude to Bonhams' own Supabase-backed archive of auction results — about 200,000 lots from Bonhams, Christie's, Sotheby's, and Phillips (2013–present), across jewellery and other departments — and adds four skills on top of it.
 
 ## Components
 
 | Component | Type | Purpose |
 |---|---|---|
-| `BARD_data` | MCP connector (HTTP) | Hosted Supabase MCP at `https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true` — read-only, scoped to the BARD project. Signs in with your Supabase account (OAuth) the first time it's used; no token to manage. Preferred by all skills. |
-| `bard-supabase` | MCP server (fallback) | Read-only connection to the BARD Supabase project (`Auction_results` table). Uses the official Supabase MCP server in `--read-only` mode, scoped to this one project via `--project-ref`. |
+| `BARD_data` | MCP connector (HTTP) | The BARD Zuplo gateway at `https://bonhams-bard-main-39baa01.d2.zuplo.dev/mcp`. Offers `query_table`, which reads rows from the `Auction_results` table (column selection, ordering, limit/offset, and filters where the gateway supports them). No Supabase account or token needed. |
 | `comparable-sales` | Skill | Finds comparable prior sales for a described jewellery piece or gemstone. |
 | `lot-estimate` | Skill | Builds a reasoned pre-sale low/high estimate range from comparables, with sourcing shown. |
-| `auction-query` | Skill | Answers ad-hoc questions — sell-through rates, top sales, price trends, volume — via SQL over the archive. |
-| `bard-home` | Skill | Builds and publishes the BARD home page: a live Specialist view (comparables request builder, top recent lots, estimate performance) and Management view (live-auction share, regions, monthly trend, reliance on top lots). |
+| `auction-query` | Skill | Answers ad-hoc questions — sell-through, top sales, volume — from filtered reads and `totalRows` counts. |
+| `bard-home` | Skill | Builds and publishes the BARD home page: a Specialist view (comparables request builder with Ask Claude chat, top recent lots, estimate performance) and a Management view (live-auction share, regions, monthly trend, reliance on top lots). |
 
 ## Setup
 
-**Recommended — `BARD_data`:** nothing to configure. The first time a skill uses it, Claude prompts you to sign in to Supabase (via /mcp in Claude Code, or the connector's Connect button in the app). Your Supabase account needs access to the BARD project.
+Nothing to configure: installing the plugin adds the `BARD_data` connector, and the skills use it directly.
 
-**Fallback — `bard-supabase`:** only needed if you can't use `BARD_data`.
+## What the gateway supports today
 
-The connector needs a Supabase **personal access token** with (at minimum) read access to the BARD project:
-
-1. In the Supabase dashboard, go to **Account → Access Tokens** and generate a new token.
-2. Set it as the `SUPABASE_ACCESS_TOKEN` environment variable wherever this plugin runs.
-
-The connector is locked to the BARD project only (`--project-ref=yxnechonpwuhhsatstgj`) and runs in `--read-only` mode, so it cannot modify data or reach other Supabase projects even if the token has broader scope. As a second layer of defence, the underlying table's Row Level Security policies only grant `SELECT` — there's no `INSERT`/`UPDATE`/`DELETE` policy at all, so writes are rejected at the database level regardless of the token used.
-
-No other setup is required — the skills query the connector directly.
+| Capability | Status |
+|---|---|
+| Read rows from `Auction_results`, choose columns, page with limit/offset | Works |
+| Row count for a query (`totalRows`) | Works |
+| Filter rows (status, house, date range, keyword `ilike`) | **Needed** for comparables, estimates and most stats. Until the gateway accepts filters, the skills say so instead of paging the whole table |
+| Sort by `auction_date` across the whole table | Times out without an index on `auction_date` |
+| SQL and the `bard` views (home page live data, the chat's BARD search) | Not available through the gateway. The home page shows its saved snapshot unless the viewer has a SQL-capable claude.ai Supabase connector |
 
 ## Usage
 
@@ -37,11 +35,13 @@ No other setup is required — the skills query the connector directly.
 
 ## Home page notes
 
-The `bard-home` page is published as a claude.ai Artifact and loads live data through the viewer's **`BARD_data`** connector (or a claude.ai Supabase connector) with access to the BARD project. Without it, the page falls back to a bundled snapshot. It depends on the `bard.*` database views in `skills/bard-home/references/admin-setup.sql`, which Investair maintains — the skill never creates them.
+The `bard-home` page is published as a claude.ai Artifact. Its live data comes from one SQL query over the `bard.*` database views (`skills/bard-home/references/admin-setup.sql`, maintained by Investair — the skill never creates them), so it needs a claude.ai connector with `execute_sql` for the BARD project. Without one, the page shows its bundled snapshot, and Ask Claude answers without searching BARD.
 
-## Data notes
+## Data and security notes
 
-- `department` is currently always `Jewelry` — the archive doesn't yet cover other Bonhams departments.
+- **`Auction_results` columns:** `id` (primary key), `lot_number`, `auction_number`, `auction_name`, `auction_date`, `auction_house`, `department`, `auction_url`, `lot_title`, `lot_description`, `est_low`, `est_high`, `hammer_price`, `sold_price`, `status`, `withdrawn`, `lot_url`, `published`, `object_id`, `image_url`, `currency`.
+- `department` now spans several departments (jewellery, watches, fashion and more). The skills filter to jewellery rather than assuming it.
 - Prices span seven currencies (USD, GBP, HKD, CHF, EUR, AUD, CNY); the skills are written to avoid blending currencies without saying so.
-- `auction_date` is stored as ISO text (`YYYY-MM-DD`), not a native date type — string comparisons and `left(auction_date, 4)` for year work correctly against it.
-- This plugin is independent of the existing `jewellery-auction-results`/`lot-estimate-guide` plugins, which run on a separate (MySQL/Investair) backend. It's possible those could eventually consolidate onto BARD, but that migration is out of scope here.
+- `auction_date` is stored as ISO text (`YYYY-MM-DD`), not a native date type — string comparisons work for ranges.
+- **Writes:** the plugin only reads. The table's Row Level Security, however, lets the `anon` role **insert and update** rows for the four houses (policies `weekly_load_insert` and `weekly_load_update`, used by the weekly loader), alongside `SELECT` for `anon` and `authenticated`. Writes are therefore *not* blocked at the database level for anyone holding the project's anon key. Keep the gateway read-only and the anon key out of shared places.
+- This plugin is independent of the existing `jewellery-auction-results`/`lot-estimate-guide` plugins, which run on a separate (MySQL/Investair) backend.

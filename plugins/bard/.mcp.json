@@ -2,19 +2,7 @@
   "mcpServers": {
     "BARD_data": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true"
-    },
-    "bard-supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--project-ref=yxnechonpwuhhsatstgj",
-        "--read-only"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
-      }
+      "url": "https://bonhams-bard-main-39baa01.d2.zuplo.dev/mcp"
     }
   }
 }

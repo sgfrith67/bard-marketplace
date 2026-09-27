@@ -5,30 +5,31 @@ description: >
   BARD auction archive that aren't a single-item comparables search or
   estimate — e.g. "what's the sell-through rate for [house/period]", "show
   top sales in [year]", "how has [category] pricing trended", "how many
-  lots did [house] sell last quarter". Runs read-only SQL against the BARD
-  Supabase connector's Auction_results table for lookups and aggregate
-  stats.
+  lots did [house] sell last quarter". Reads the Auction_results table
+  through the BARD_data connector (Zuplo gateway) for lookups and stats.
 metadata:
-  version: "0.3.0"
+  version: "0.5.0"
 ---
 
-Answer open-ended questions about the auction archive by querying `public."Auction_results"` through the `BARD_data` connector (or `bard-supabase` if `BARD_data` isn't connected) (read-only — `SELECT` only, no writes are possible against this connector).
+Answer open-ended questions about the auction archive by reading the `Auction_results` table through the `BARD_data` connector's `query_table` tool (the BARD Zuplo gateway). The gateway is read-only for this plugin: it reads rows and never writes.
 
 ## Schema
 
-Same table as `comparable-sales`/`lot-estimate`: `lot_number`, `auction_number`, `auction_name`, `auction_date` (text, ISO `YYYY-MM-DD`), `auction_house` (`Bonhams`/`Christies`/`Sothebys`/`Phillips`), `department` (currently always `Jewelry`), `lot_title`, `lot_description`, `est_low`, `est_high`, `hammer_price`, `sold_price`, `status` (`SOLD`/`NOT_SOLD`/`UNSOLD`/null), `withdrawn` (`No`/null), `currency`, `lot_url`, `image_url`.
+Same table as `comparable-sales`/`lot-estimate`: `id`, `lot_number`, `auction_number`, `auction_name`, `auction_date` (text, ISO `YYYY-MM-DD`), `auction_house` (`Bonhams`/`Christies`/`Sothebys`/`Phillips`), `department` (several departments now, so filter to the one asked about), `auction_url`, `lot_title`, `lot_description`, `est_low`, `est_high`, `hammer_price`, `sold_price`, `status` (`SOLD`/`NOT_SOLD`/`UNSOLD`/null), `withdrawn` (`No`/null), `lot_url`, `published`, `object_id`, `image_url`, `currency`. See `comparable-sales` for column notes and the `query_table` call rules.
 
-## Common patterns
+## What the gateway can and can't do
 
-- **Sell-through rate**: `count(*) filter (where status = 'SOLD') / count(*)::numeric` over the relevant slice (by house, date range, etc.). Decide whether to include or exclude rows with null `status` and say which you did.
-- **Top sales**: order by `sold_price desc`, filtered to `status = 'SOLD'`, within whatever house/date/currency slice was asked for.
-- **Price trend over time**: bucket by year (`left(auction_date, 4)`) or by `auction_name`, and aggregate `sold_price`/`hammer_price` — always split or note by `currency` since the archive mixes seven currencies, and never sum/average raw prices across currencies.
-- **Premium over estimate**: compare `sold_price` (or `hammer_price`) to `est_low`/`est_high` per lot to see whether sales landed inside, above, or below estimate.
-- **Volume counts**: straightforward `count(*)` with `group by auction_house`, `group by auction_name`, or date-range filters (`auction_date >= '2025-01-01'` — string comparison works because dates are stored as ISO text).
+`query_table` returns rows, with `select`, `order`, `limit` and `offset`, plus filters if its input schema offers them. The response also reports `totalRows` for the query. It has **no aggregation** (no count, sum or group by) and no SQL.
+
+- **Counts:** make a filtered call with `limit: 1` and read `totalRows`. For example, lots sold at Bonhams in 2025 = `totalRows` with `auction_house` = `Bonhams`, `status` = `SOLD`, and `auction_date` from `2025-01-01` to `2025-12-31`.
+- **Sell-through:** two counts over the same slice, sold ÷ offered. Say whether null `status` rows were included.
+- **Top sales:** filter the slice, then `order: sold_price.desc` with a small `limit`. Ordering a filtered slice is fine; ordering the whole table by `auction_date` times out.
+- **Totals, averages, trends by year or month:** these need every matching row. Only do it when the slice is small (a single sale, or a few hundred lots): page through with `select` limited to the columns you need, and total it yourself. For anything larger, say that this needs an aggregate endpoint on the gateway rather than paging thousands of rows.
+- **No filter parameter on the tool:** most questions can't be answered. Say so and explain that the gateway needs filter support.
 
 ## Guidance
 
-- Always state which filters were applied (status, date range, currency, house) alongside the answer so the number is reproducible.
-- When a question is ambiguous (e.g. "recent" with no window given), pick a reasonable default (last 12 months) and say so, rather than asking unless the choice would materially change the answer.
-- For anything mixing currencies, either group by `currency` in the output or restrict to one currency and say which.
-- Cross-reference `withdrawn` and `status` — a withdrawn lot has no meaningful price and should generally be excluded from price stats even if `status` is null.
+- Always state which filters were applied (status, date range, currency, house, department) alongside the answer, so the number is reproducible.
+- When a question is ambiguous (e.g. "recent" with no window given), pick a reasonable default (last 12 months) and say so, rather than asking, unless the choice would materially change the answer.
+- For anything mixing currencies, split the output by `currency` or restrict it to one currency and say which. Never sum or average raw prices across currencies.
+- Cross-reference `withdrawn` and `status`: a withdrawn lot has no meaningful price and should generally be excluded from price stats even if `status` is null.

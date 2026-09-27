@@ -1,6 +1,6 @@
 {
   "name": "bard",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "BARD (Bonhams Auction Research Database) — query Bonhams' own auction results archive in Supabase to find comparable sales, research lot estimates, and publish the BARD home page (Specialist and Management views).",
   "author": {
     "name": "Bonhams"
