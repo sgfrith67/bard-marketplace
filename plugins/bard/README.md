@@ -18,13 +18,13 @@ Nothing to configure: installing the plugin adds the `BARD_data` connector, and 
 
 ## What the gateway supports today
 
-| Capability | Status |
+| Tool | What it does |
 |---|---|
-| Read rows from `Auction_results`, choose columns, page with limit/offset | Works |
-| Row count for a query (`totalRows`) | Works |
-| Filter rows (status, house, date range, keyword `ilike`) | **Needed** for comparables, estimates and most stats. Until the gateway accepts filters, the skills say so instead of paging the whole table |
-| Sort by `auction_date` across the whole table | Times out without an index on `auction_date` |
-| SQL and the `bard` views (home page live data, the chat's BARD search) | Not available through the gateway. The home page shows its saved snapshot unless the viewer has a SQL-capable claude.ai Supabase connector |
+| `query_table` | Reads rows from `Auction_results`: choose columns, order, limit/offset, and repeatable `filter` values (`column=op.value`, e.g. `status=eq.SOLD`, `lot_description=ilike.*sapphire*`). Returns `totalRows`, which the skills use for counts |
+| `search_lots` | Keyword search (every word in title or description), up to 200 rows, newest first. Backed by the database function `public.search_lots` and a trigram index |
+| `bard_home` | The home page's summary data, precomputed every 3 hours into `bard.home_cache` and served by `public.bard_home_model()` |
+
+Database side (applied 27 Sep 2026): an index on `(auction_date, auction_house)`, a trigram index on title + description, the two functions above (executable by `anon`), the cache table, and a `pg_cron` job `bard-refresh-home` (`17 */3 * * *`). The `anon` role has a 3-second statement timeout, which is why the home page data is cached rather than computed per request.
 
 ## Usage
 

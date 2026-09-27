@@ -8,7 +8,7 @@ description: >
   lots did [house] sell last quarter". Reads the Auction_results table
   through the BARD_data connector (Zuplo gateway) for lookups and stats.
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 Answer open-ended questions about the auction archive by reading the `Auction_results` table through the `BARD_data` connector's `query_table` tool (the BARD Zuplo gateway). The gateway is read-only for this plugin: it reads rows and never writes.
@@ -19,13 +19,13 @@ Same table as `comparable-sales`/`lot-estimate`: `id`, `lot_number`, `auction_nu
 
 ## What the gateway can and can't do
 
-`query_table` returns rows, with `select`, `order`, `limit` and `offset`, plus filters if its input schema offers them. The response also reports `totalRows` for the query. It has **no aggregation** (no count, sum or group by) and no SQL.
+`query_table` returns rows, with `select`, `order`, `limit`, `offset` and repeatable `filter` values (`column=op.value`, e.g. `status=eq.SOLD`, `auction_date=gte.2025-01-01`). The response also reports `totalRows` for the query. It has **no aggregation** (no count, sum or group by) and no SQL.
 
 - **Counts:** make a filtered call with `limit: 1` and read `totalRows`. For example, lots sold at Bonhams in 2025 = `totalRows` with `auction_house` = `Bonhams`, `status` = `SOLD`, and `auction_date` from `2025-01-01` to `2025-12-31`.
 - **Sell-through:** two counts over the same slice, sold ÷ offered. Say whether null `status` rows were included.
 - **Top sales:** filter the slice, then `order: sold_price.desc` with a small `limit`. Ordering a filtered slice is fine; ordering the whole table by `auction_date` times out.
 - **Totals, averages, trends by year or month:** these need every matching row. Only do it when the slice is small (a single sale, or a few hundred lots): page through with `select` limited to the columns you need, and total it yourself. For anything larger, say that this needs an aggregate endpoint on the gateway rather than paging thousands of rows.
-- **No filter parameter on the tool:** most questions can't be answered. Say so and explain that the gateway needs filter support.
+- **House-level headline figures** (live value, market share by year, regions, estimate performance, top recent lots): read them from the `bard_home` tool, which returns the home page's precomputed summary (refreshed every 3 hours), instead of paging rows. Its fields are described in `bard-home/references/page-guide.md`.
 
 ## Guidance
 

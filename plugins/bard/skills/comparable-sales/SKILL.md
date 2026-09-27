@@ -8,7 +8,7 @@ description: >
   Auction_results table through the BARD_data connector (Zuplo gateway),
   covering lots from Bonhams, Christie's, Sotheby's, and Phillips.
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 Read the `Auction_results` table through the `BARD_data` connector's `query_table` tool (if tools are deferred, search for "query_table"). The connector is the BARD Zuplo gateway, `https://bonhams-bard-main-39baa01.d2.zuplo.dev/mcp`.
@@ -19,7 +19,12 @@ Read the `Auction_results` table through the `BARD_data` connector's `query_tabl
 - `select`: a comma-separated column list. Always ask only for the columns you need, because `lot_description` is long.
 - `limit` / `offset`: page size (default 50) and paging.
 - `order`: e.g. `sold_price.desc`. **Avoid ordering by `auction_date` across the whole table**: without an index it times out ("canceling statement due to statement timeout"). Order within a filtered set, or sort the returned rows yourself.
-- **Filters:** check the tool's input schema each time. If it offers a filter parameter (PostgREST style, e.g. `status=eq.SOLD`, `auction_house=eq.Bonhams`, `lot_description=ilike.*sapphire*`, `auction_date=gte.2024-01-01`), use it for every search. If it doesn't, **stop and tell the user**: the gateway can't search by keyword yet, so a comparables search would mean paging through ~200,000 rows. Don't try to page the whole table.
+- **Filters:** pass one or more `filter` values in the form `column=op.value` (PostgREST operators), e.g. `status=eq.SOLD`, `auction_house=eq.Bonhams`, `lot_description=ilike.*sapphire*`, `auction_date=gte.2024-01-01`. Use them on every search; never page the whole table. Check the tool's input schema for the exact parameter shape (a repeatable `filter` list).
+
+### Other gateway tools
+
+- **`search_lots`** (`search_term`, `max_results` up to 200): keyword search where every word must appear in the lot title or description, newest first. It's the quickest first pass for comparables, e.g. `search_term: "sapphire cartier ring"`. It doesn't filter by status or department, so check `status`, `withdrawn` and `department` on the rows it returns, or follow up with `query_table` filters.
+- **`bard_home`**: the home page's summary data (market share, regions, estimate performance). Not for comparables.
 
 ## Table reference: `Auction_results`
 
@@ -50,7 +55,7 @@ About 200,000 lots across the four houses. `lot_description` is the richest fiel
 
 1. Extract the distinguishing features from the item: gemstone or material, carat weight (or range), metal, style or period, maker or brand, and any other distinctive detail.
 2. Filter to completed, valid sales unless the user asks otherwise: `status` = `SOLD`, and `withdrawn` null or `No`. Restrict to jewellery: `department` for jewellery, or a sale name containing "jewel".
-3. Match the 2–4 most distinctive terms with `ilike` on `lot_title` or `lot_description`. Don't over-constrain on the first pass; loosen or tighten based on the result count.
+3. Start with `search_lots` on the 2–4 most distinctive terms, or use `query_table` with `ilike` filters on `lot_title`/`lot_description` plus the status filters above. Don't over-constrain on the first pass; loosen or tighten based on the result count.
 4. Carat weights live inside `lot_description` as free text (e.g. "estimated total diamond weight 3.25 carats"). Filter loosely by keyword, then read descriptions to judge closeness. If the user gave a carat range, keep only lots whose main stone falls inside it, and show each lot's weight.
 5. Select only `auction_house, auction_name, auction_date, lot_title, lot_description, est_low, est_high, hammer_price, sold_price, currency, lot_url`, and cap at 15–20 rows unless the user wants more. Sort the returned rows by date yourself.
 6. If results are too sparse, drop a qualifier; if too broad, add a distinguishing term (metal, maker, period) rather than lowering the limit.

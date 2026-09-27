@@ -315,3 +315,18 @@ from h;
 
 revoke all on all tables in schema bard from anon, authenticated;
 revoke all on all functions in schema bard from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- 8. Zuplo gateway support (applied 2026-09-27 as migrations
+--    bard_gateway_functions and bard_search_trigram_index)
+--  * idx_auction_results_date_house on (auction_date, auction_house)
+--  * pg_trgm + idx_auction_results_text_trgm (GIN on title || ' ' || description)
+--  * bard.home_cache (single row) + bard.refresh_home_cache() (security definer,
+--    runs assets/model.sql; not executable by anon/authenticated)
+--  * public.bard_home_model() -> json from the cache (security definer, anon may execute)
+--  * public.search_lots(search_term text, max_results int default 50)
+--    -> setof "Auction_results", every word must match, cap 200 (security invoker)
+--  * cron job 'bard-refresh-home' at '17 */3 * * *'
+--  The full model query takes ~30 s; anon's statement_timeout is 3 s, hence the cache.
+--  When model.sql changes, update the query inside bard.refresh_home_cache() too.
+-- ---------------------------------------------------------------------

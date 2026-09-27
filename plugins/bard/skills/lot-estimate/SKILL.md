@@ -8,7 +8,7 @@ description: >
   Supabase connector to research comparables and reason about an estimate
   range.
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 Produce a reasoned pre-sale estimate range for a piece the user describes, grounded in comparable sales from the `Auction_results` table, read through the `BARD_data` connector's `query_table` tool (the BARD Zuplo gateway). This is a research aid for a specialist, not a substitute for their judgment — always frame the output as a starting point, not a final estimate.
@@ -16,7 +16,7 @@ Produce a reasoned pre-sale estimate range for a piece the user describes, groun
 ## Process
 
 1. **Gather the item's features** from the user: gemstone/material, carat weight, metal, maker/brand, period/style, condition notes. Ask for anything critical that's missing (carat weight and material are usually essential; don't ask about everything).
-2. **Search for comparables** using the same approach as the `comparable-sales` skill, including its `query_table` rules: `ilike` filters on `lot_title`/`lot_description`, `status` = `SOLD`, not withdrawn, jewellery department only, and no whole-table sort on `auction_date`. If the tool has no filter parameter, stop and say the gateway can't search yet. Pull 8-20 close comparables — prefer fewer, closer matches over a large loose set.
+2. **Search for comparables** using the same approach as the `comparable-sales` skill, including its `query_table` rules: `ilike` filters on `lot_title`/`lot_description`, `status` = `SOLD`, not withdrawn, jewellery department only, and no whole-table sort on `auction_date`. Start with `search_lots` for keywords, then tighten with `query_table` filters. Pull 8-20 close comparables — prefer fewer, closer matches over a large loose set.
 3. **Read the comparables' `lot_description` values** to judge true closeness (carat weight, quality, maker) beyond what the keyword match guarantees, and set aside any that turn out to be a poor match.
 4. **Reason about the range**, not just an average:
    - Look at the spread of `sold_price` (and `hammer_price`) among the closest comparables, not just the mean — a tight cluster supports a narrow estimate, a wide spread means say so.
