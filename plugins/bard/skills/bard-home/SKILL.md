@@ -20,9 +20,9 @@ Everything the page needs is bundled:
 
 ### 1. Find the Supabase connector
 
-Look for the Supabase connector's `execute_sql` tool (if tools are deferred, search for "supabase execute sql"). Note the connector's display name exactly as it appears. It's usually `Supabase`, and the page calls the connector by that name. When this skill is installed as part of the BARD plugin, the plugin's own `bard-supabase` server can be used for steps 2–3, but the published page itself still needs a claude.ai Supabase connector for live data.
+Look for the `BARD_data` connector's `execute_sql` tool first (it ships with the BARD plugin), then any other Supabase connector (if tools are deferred, search for "BARD_data execute sql" or "supabase execute sql"). Note the connector's display name exactly as it appears. With the BARD plugin installed it's `BARD_data`; otherwise it's usually `Supabase`. The page calls the connector by that name, so pass it as `--server` in step 4. The plugin's `bard-supabase` server can also be used for steps 2–3 if `BARD_data` isn't connected.
 
-If there's no Supabase connector, carry on: the page still publishes and shows the bundled snapshot. Tell the user that live data needs the Supabase connector added in claude.ai Settings → Connectors, with access to the BARD project. Skip step 2.
+If there's no Supabase connector, carry on: the page still publishes and shows the bundled snapshot. Tell the user that live data needs the `BARD_data` connector (from the BARD plugin) connected and signed in to Supabase, or a Supabase connector added in claude.ai Settings → Connectors with access to the BARD project. Skip step 2.
 
 ### 2. Check BARD is reachable
 
@@ -54,7 +54,7 @@ To refresh:
 
 ```bash
 python <this skill's directory>/scripts/build_page.py \
-  --server "Supabase" \
+  --server "BARD_data" \
   --out <outputs dir>/bard-home.html
   # <outputs dir> is /mnt/user-data/outputs on claude.ai, or the session scratchpad in Claude Code
   # add --result <working dir>/bard_result.txt if you refreshed the snapshot

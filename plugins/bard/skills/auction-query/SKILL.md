@@ -9,10 +9,10 @@ description: >
   Supabase connector's Auction_results table for lookups and aggregate
   stats.
 metadata:
-  version: "0.1.0"
+  version: "0.3.0"
 ---
 
-Answer open-ended questions about the auction archive by querying `public."Auction_results"` through the `bard-supabase` connector (read-only — `SELECT` only, no writes are possible against this connector).
+Answer open-ended questions about the auction archive by querying `public."Auction_results"` through the `BARD_data` connector (or `bard-supabase` if `BARD_data` isn't connected) (read-only — `SELECT` only, no writes are possible against this connector).
 
 ## Schema
 

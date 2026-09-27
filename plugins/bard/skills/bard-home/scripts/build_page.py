@@ -8,7 +8,7 @@ The snapshot baked in here is only a fallback, shown when live data can't load.
 Usage:
     python build_page.py                                  # bundled snapshot
     python build_page.py --result /path/to/result.txt     # fresh snapshot from an execute_sql result
-    python build_page.py --server "Supabase" --yellow "#FFD100" --out /mnt/user-data/outputs/bard-home.html
+    python build_page.py --server "BARD_data" --yellow "#FFD100" --out /mnt/user-data/outputs/bard-home.html
 
 --result accepts the raw text an execute_sql call returned (including the
 <untrusted-data-...> wrapper), the JSON array inside it, or the bare model object.
@@ -57,7 +57,7 @@ def js(value) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--result", help="File holding an execute_sql result for assets/model.sql (optional)")
-    ap.add_argument("--server", default="Supabase", help="Display name of the viewer's Supabase connector")
+    ap.add_argument("--server", default="BARD_data", help="Display name of the viewer's Supabase connector")
     ap.add_argument("--project", default=DEFAULT_PROJECT, help="Supabase project id for BARD")
     ap.add_argument("--yellow", default="#FFD100", help="Accent yellow for buttons and selected states")
     ap.add_argument("--out", default="/mnt/user-data/outputs/bard-home.html")

@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "BARD_data": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true"
+    },
     "bard-supabase": {
       "command": "npx",
       "args": [

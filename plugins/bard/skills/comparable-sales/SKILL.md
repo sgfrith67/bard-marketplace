@@ -8,10 +8,10 @@ description: >
   the BARD Supabase connector's Auction_results table, covering lots from
   Bonhams, Christie's, Sotheby's, and Phillips.
 metadata:
-  version: "0.1.0"
+  version: "0.3.0"
 ---
 
-Use the `bard-supabase` MCP connector's SQL tool to query `public."Auction_results"` (the mixed-case name requires double quotes in Postgres).
+Use the `BARD_data` connector's `execute_sql` tool (fall back to the `bard-supabase` connector if `BARD_data` isn't connected) to query `public."Auction_results"` (the mixed-case name requires double quotes in Postgres).
 
 ## Table reference
 

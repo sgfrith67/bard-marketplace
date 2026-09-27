@@ -8,10 +8,10 @@ description: >
   Supabase connector to research comparables and reason about an estimate
   range.
 metadata:
-  version: "0.1.0"
+  version: "0.3.0"
 ---
 
-Produce a reasoned pre-sale estimate range for a piece the user describes, grounded in comparable sales from `public."Auction_results"` via the `bard-supabase` connector. This is a research aid for a specialist, not a substitute for their judgment — always frame the output as a starting point, not a final estimate.
+Produce a reasoned pre-sale estimate range for a piece the user describes, grounded in comparable sales from `public."Auction_results"` via the `BARD_data` connector (or `bard-supabase` as a fallback). This is a research aid for a specialist, not a substitute for their judgment — always frame the output as a starting point, not a final estimate.
 
 ## Process
 

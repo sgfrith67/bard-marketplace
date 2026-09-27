@@ -6,13 +6,18 @@ BARD connects Claude to Bonhams' own Supabase-backed archive of jewellery auctio
 
 | Component | Type | Purpose |
 |---|---|---|
-| `bard-supabase` | MCP server | Read-only connection to the BARD Supabase project (`Auction_results` table). Uses the official Supabase MCP server in `--read-only` mode, scoped to this one project via `--project-ref`. |
+| `BARD_data` | MCP connector (HTTP) | Hosted Supabase MCP at `https://mcp.supabase.com/mcp?project_ref=yxnechonpwuhhsatstgj&read_only=true` — read-only, scoped to the BARD project. Signs in with your Supabase account (OAuth) the first time it's used; no token to manage. Preferred by all skills. |
+| `bard-supabase` | MCP server (fallback) | Read-only connection to the BARD Supabase project (`Auction_results` table). Uses the official Supabase MCP server in `--read-only` mode, scoped to this one project via `--project-ref`. |
 | `comparable-sales` | Skill | Finds comparable prior sales for a described jewellery piece or gemstone. |
 | `lot-estimate` | Skill | Builds a reasoned pre-sale low/high estimate range from comparables, with sourcing shown. |
 | `auction-query` | Skill | Answers ad-hoc questions — sell-through rates, top sales, price trends, volume — via SQL over the archive. |
 | `bard-home` | Skill | Builds and publishes the BARD home page: a live Specialist view (comparables request builder, top recent lots, estimate performance) and Management view (live-auction share, regions, monthly trend, reliance on top lots). |
 
 ## Setup
+
+**Recommended — `BARD_data`:** nothing to configure. The first time a skill uses it, Claude prompts you to sign in to Supabase (via /mcp in Claude Code, or the connector's Connect button in the app). Your Supabase account needs access to the BARD project.
+
+**Fallback — `bard-supabase`:** only needed if you can't use `BARD_data`.
 
 The connector needs a Supabase **personal access token** with (at minimum) read access to the BARD project:
 
@@ -32,7 +37,7 @@ No other setup is required — the skills query the connector directly.
 
 ## Home page notes
 
-The `bard-home` page is published as a claude.ai Artifact and loads live data through the viewer's own claude.ai **Supabase connector** (Settings → Connectors) with access to the BARD project. Without it, the page falls back to a bundled snapshot. It depends on the `bard.*` database views in `skills/bard-home/references/admin-setup.sql`, which Investair maintains — the skill never creates them.
+The `bard-home` page is published as a claude.ai Artifact and loads live data through the viewer's **`BARD_data`** connector (or a claude.ai Supabase connector) with access to the BARD project. Without it, the page falls back to a bundled snapshot. It depends on the `bard.*` database views in `skills/bard-home/references/admin-setup.sql`, which Investair maintains — the skill never creates them.
 
 ## Data notes
 
